@@ -97,3 +97,13 @@ export interface EnterpriseEmployee {
   performanceReview: string;
   isConfidential: boolean;
 }
+
+export interface ProjectUseCase {
+  id: 'airline' | 'securebank' | 'saas' | 'cloudvault';
+  projectTitle: string;
+  studentName: string;
+  rollNo: string;
+  conceptsUsed: string[];
+  themeColor: string;
+  description: string;
+}

@@ -1,4 +1,43 @@
-import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, EnterpriseEmployee, EnterpriseAnnouncement } from '../types/security';
+import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, EnterpriseEmployee, EnterpriseAnnouncement, ProjectUseCase } from '../types/security';
+
+export const PROJECT_USE_CASES: ProjectUseCase[] = [
+  {
+    id: 'airline',
+    projectTitle: 'Smart Airline Booking & Security Portal',
+    studentName: 'Aakash B',
+    rollNo: '7176 22 31 001',
+    conceptsUsed: ['SQL Injection', 'Parameter Tampering', 'Phishing Simulator', 'IDN Homograph Attack', 'XSS'],
+    themeColor: 'from-blue-600 to-cyan-600',
+    description: 'Real-time airline reservation platform featuring flight search SQLi, ticket price tampering (₹18,000 → ₹100), IDN Cyrillic domain spoofing (skуwings.com), and passenger review XSS.'
+  },
+  {
+    id: 'securebank',
+    projectTitle: 'SecureBank Core Banking Portal',
+    studentName: 'Anugraha VS',
+    rollNo: '7176 22 31 003',
+    conceptsUsed: ['SQL Injection', 'Parameter Tampering', 'URL Interpretation (IDOR)', 'Timing Attack', 'Brute Force (Password Guessing)'],
+    themeColor: 'from-emerald-600 to-teal-700',
+    description: 'High-security financial institution simulating login auth bypass, account slip IDOR (?account_id=999), password brute force, and response timing attack analysis.'
+  },
+  {
+    id: 'saas',
+    projectTitle: 'SaaS Subscription Portal',
+    studentName: 'Avanthika PG',
+    rollNo: '7176 22 31 008',
+    conceptsUsed: ['SQL Injection', 'Password Guessing', 'XSS', 'Parameter Tampering', 'Phishing Simulator'],
+    themeColor: 'from-purple-600 to-indigo-700',
+    description: 'Multi-tenant cloud subscription platform featuring plan lookup SQLi, tenant admin password guessing, support desk XSS, and ₹0 enterprise plan tampering.'
+  },
+  {
+    id: 'cloudvault',
+    projectTitle: 'Cloud Vault Application',
+    studentName: 'Student Project 010',
+    rollNo: '7176 22 31 010',
+    conceptsUsed: ['SQL Injection', 'Cross-Site Scripting', 'Parameter Tampering', 'Local File Inclusion (LFI)', 'Password Guessing Attack'],
+    themeColor: 'from-red-600 to-orange-700',
+    description: 'Cloud document & storage vault featuring directory search SQLi, file note XSS, access level tampering (access_level=9), and Local File Inclusion (?file=../../../../etc/passwd).'
+  }
+];
 
 export const INITIAL_CUSTOMERS: BankCustomer[] = [
   {
