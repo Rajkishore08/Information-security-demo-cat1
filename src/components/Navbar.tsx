@@ -11,7 +11,11 @@ import {
   BookOpen, 
   Terminal,
   FileCode2,
-  Layers
+  Layers,
+  FileText,
+  Globe,
+  Sparkles,
+  Award
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -27,7 +31,11 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
     setActiveModule, 
     logs, 
     setIsCodeModalOpen, 
-    setIsVivaModalOpen 
+    setIsVivaModalOpen,
+    setIsReportModalOpen,
+    setIsProxyModalOpen,
+    setIsPayloadModalOpen,
+    setIsHeadersModalOpen
   } = useSecurity();
 
   const modules: { id: ModuleId; label: string; icon: React.FC<{ className?: string }> }[] = [
@@ -40,7 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-800 bg-gray-950/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         {/* Logo & Title */}
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
@@ -58,10 +66,10 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
         </div>
 
         {/* Global Vulnerable / Secure Mode Toggle */}
-        <div className="flex items-center gap-3 bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 shadow-inner">
+        <div className="flex items-center gap-2 bg-gray-900/90 p-1.5 rounded-2xl border border-gray-800 shadow-inner">
           <button
             onClick={toggleMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-300 ${
               mode === 'vulnerable'
                 ? 'bg-red-600/90 text-white shadow-lg shadow-red-600/40 ring-2 ring-red-500/50'
                 : 'text-gray-400 hover:text-gray-200'
@@ -73,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
           
           <button
             onClick={toggleMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-300 ${
               mode === 'secure'
                 ? 'bg-emerald-600/90 text-white shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-500/50'
                 : 'text-gray-400 hover:text-gray-200'
@@ -85,34 +93,70 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsProxyModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-800/80 rounded-xl transition"
+            title="Open Burp Suite / OWASP ZAP HTTP Proxy Interceptor"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>Burp Proxy</span>
+          </button>
+
+          <button
+            onClick={() => setIsPayloadModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-purple-300 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/80 rounded-xl transition"
+            title="Open Attack Payload Library"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Payloads</span>
+          </button>
+
+          <button
+            onClick={() => setIsHeadersModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/80 rounded-xl transition"
+            title="Audit Live HTTP Security Headers & CSP"
+          >
+            <Award className="h-3.5 w-3.5" />
+            <span>Headers Audit</span>
+          </button>
+
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-blue-300 bg-blue-950/60 hover:bg-blue-900/80 border border-blue-800/80 rounded-xl transition"
+            title="Generate Printable Viva Lab Report PDF"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>Viva Report</span>
+          </button>
+
           <button
             onClick={() => setIsCodeModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-purple-300 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/80 rounded-xl transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-purple-300 bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/80 rounded-xl transition"
             title="View Code Diffs (PHP/MySQL)"
           >
-            <FileCode2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Code Inspector</span>
+            <FileCode2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Code Diffs</span>
           </button>
 
           <button
             onClick={() => setIsVivaModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-800/80 rounded-xl transition"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-amber-300 bg-amber-950/60 hover:bg-amber-900/80 border border-amber-800/80 rounded-xl transition"
             title="Open Viva Questions & Answers"
           >
-            <BookOpen className="h-4 w-4" />
-            <span className="hidden sm:inline">Viva Prep</span>
+            <BookOpen className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Viva Q&A</span>
           </button>
 
           <button
             onClick={() => setIsTerminalOpen((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border transition ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition ${
               isTerminalOpen
                 ? 'bg-gray-800 text-emerald-400 border-emerald-500/50'
                 : 'bg-gray-900 text-gray-400 border-gray-800 hover:text-gray-200'
             }`}
           >
-            <Terminal className="h-4 w-4" />
+            <Terminal className="h-3.5 w-3.5" />
             <span>Logs</span>
             <span className="ml-1 rounded-full bg-emerald-950 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-800">
               {logs.length}

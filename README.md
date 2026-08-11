@@ -7,13 +7,17 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 
 ---
 
-## 🌟 Key Features
+## 🌟 Key Features & Advanced Lab Enhancements
 
 - **🔴 Vulnerable Mode vs. 🟢 Secure Mode Toggle**: Instant global mode switcher that modifies server-side query construction, sanitization logic, access controls, and rate limits across all modules in real time.
-- **💻 Live Request Terminal & SQL Execution Logger**: Colorized drawer terminal capturing raw HTTP POST/GET requests, constructed SQL strings vs. bound prepared parameters, HTML entity encoding, and defense triggers.
+- **📄 Printable Viva Lab Report Generator (PDF / HTML)**: One-click formatted laboratory evaluation report complete with Student Registration details, experiment audit table, OWASP defense matrix, and Faculty Signature sign-off block.
+- **🪟 Burp Suite / OWASP ZAP HTTP Proxy Inspector ("CyberProxy")**: Interactive proxy modal to capture, inspect, and modify HTTP POST/GET request payloads (`price=10`) inline before sending to server, and view live response security headers (`Content-Security-Policy`, `HSTS`, `X-Frame-Options`).
+- **🎯 20+ Attack Payload Library**: Curated attack strings categorized across SQLi, XSS, Parameter Tampering, Command Injection, and Path Traversal with 1-tap copy and explanation tooltips.
+- **🛡️ Live Security Headers Auditor & CSP Analyzer**: Real-time HTTP header audit scorecard comparing Vulnerable Mode (Grade: F - Missing Headers) vs. Secure Mode (Grade: A+ - Hardened Headers).
+- **🎉 Interactive Confetti & Visual Flash Cues**: Audio and visual feedback effects triggering upon exploit confirmation or defense activation.
+- **💻 Live Request Terminal & SQL Execution Logger**: Colorized drawer terminal capturing raw HTTP requests, constructed SQL strings vs. bound prepared parameters, HTML entity encoding, and defense triggers.
 - **📄 Side-by-Side Code Inspector**: Interactive modal presenting vulnerable PHP/MySQL implementations alongside secure parameterized queries, `htmlspecialchars()` encoders, and `FILTER_VALIDATE_IP` filters.
-- **🎓 College Viva Flashcard Hub**: Question bank with flip-to-reveal answers covering OWASP Top 10 concepts expected during lab evaluations.
-- **📱 Real-World Target App & Mobile Test Bench**: Integrated enterprise web portal ("OmniCorp Enterprise") equipped with an interactive 1-tap attack payload workbench designed for mobile screens and quick presentation testing.
+- **📱 Mobile-Responsive Real Target Portal & Attack Workbench**: Integrated enterprise web portal ("OmniCorp Enterprise") equipped with an interactive 1-tap attack payload test bench designed for mobile screens and quick presentation testing.
 
 ---
 
@@ -35,6 +39,7 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 - **Build Tooling**: Vite 8
 - **Styling**: Tailwind CSS v4 + Custom Cyber Glassmorphic Design
 - **Icons**: Lucide React
+- **Visual Effects**: Canvas Confetti
 - **Architecture**: Simulated In-Memory Database & Live Server Request Interceptor (Zero external database required—runs out of the box on any system!)
 
 ---
@@ -72,36 +77,24 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 
 ## 🎓 Viva Presentation & Testing Walkthrough Guide
 
-### Step 1: SQL Injection (Module 1)
-1. Ensure **🔴 Vulnerable Mode** is enabled at the top right.
-2. Under **1. SQL Injection**, click the preset button **"Classic Bypass (' OR '1'='1)"**.
-3. Click **Submit Authentication Request**.
-4. Observe that authentication succeeds and grants **Admin Privileges**, unlocking the decrypted credit card vault.
-5. Click **Code Inspector** in the header to show the examiner the unsafe dynamic query (`$sql = "SELECT ... WHERE username='$user'"`) vs. Prepared Statement (`$stmt->bind_param("ss", $user, $pass)`).
-6. Switch to **🟢 Secure Mode** and resubmit. Note that prepared statement parameter binding treats the payload as a literal string value, blocking the bypass.
+### Step 1: Generate Viva Lab Report
+1. Click **Viva Report** in the top navigation bar.
+2. Fill in your Name, Registration Number, and Course Code.
+3. Click **Print / Save as PDF** to generate an official laboratory record with Faculty Sign-Off block.
 
-### Step 2: Cross-Site Scripting (XSS) (Module 2)
-1. Select **2. Cross-Site Scripting (XSS)**.
-2. Select the payload preset `<script>alert("Hacked! Session Cookie: " + document.cookie)</script>`.
-3. Click **Submit Feedback Comment**.
-4. In **Vulnerable Mode 🔴**, observe the sandboxed alert popup displaying stolen session cookies (`sess_id=abc991823_stolen_token`).
-5. Switch to **Secure Mode 🟢** and submit again. Observe that characters like `<` and `>` are encoded as `&lt;` and `&gt;`, rendering safe plain text.
+### Step 2: Test HTTP Interceptor via Burp Proxy
+1. Click **Burp Proxy** in the top navigation bar.
+2. Modify the request body inline (e.g. change `"price": 85000` to `"price": 10`).
+3. Click **Forward Tampered HTTP Request** to inspect server response headers (`Content-Security-Policy`, `HSTS`, `X-Frame-Options`).
 
-### Step 3: Parameter Tampering & IDOR (Module 3)
-1. Select **3. Parameter Tampering**.
-2. **Scenario A (IDOR)**: Change URL parameter `?id=1` to `?id=10`. In Vulnerable Mode, notice that the unlisted VIP Admin Gift Voucher (₹50,000) is accessed. In Secure Mode, the server returns `403 Forbidden`.
-3. **Scenario B (Price Tampering)**: On the Alienware Laptop (listed ₹85,000), change the price input box to `10`. In Vulnerable Mode, the laptop is purchased for ₹10! In Secure Mode, the server recalculates the price using backend database records.
+### Step 3: Audit Security Headers
+1. Click **Headers Audit** in the top navigation bar.
+2. In **Vulnerable Mode 🔴**, observe Grade F (0/5 Security Headers).
+3. Toggle to **Secure Mode 🟢** and observe Grade A+ (5/5 Hardened Security Headers).
 
-### Step 4: Password Guessing (Module 4)
-1. Select **4. Password Guessing**.
-2. Click **Start Dictionary Attack**.
-3. In **Vulnerable Mode 🔴**, watch the runner rapidly try common passwords until `Attempt #4 ("welcome")` succeeds.
-4. Switch to **Secure Mode 🟢** and run the attack. Observe that after 3 failed attempts, a **CAPTCHA Challenge** is triggered, a **1.5s artificial rate-limiting delay** throttles requests, and **Account Lockout** triggers after 5 failed attempts.
-
-### Step 5: Full Unified Application & Command Injection (Module 5)
-1. Select **5. Full Unified App 🚀**.
-2. Expand the **Interactive Attack Test Bench** at the top.
-3. Test **OS Command Injection**: Click `8.8.8.8; cat /etc/passwd` in the test bench and submit. In Vulnerable Mode, observe the server terminal output reading Linux system user files (`/etc/passwd`). In Secure Mode, IP validation filters block the command injection.
+### Step 4: Explore Attack Payload Library
+1. Click **Payloads** in the top navigation bar.
+2. Browse 20+ attack strings across SQLi, XSS, Parameter Tampering, Command Injection, and Path Traversal with 1-tap copy.
 
 ---
 
@@ -124,27 +117,17 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 │   │   ├── Navbar.tsx
 │   │   ├── TerminalLogs.tsx
 │   │   ├── CodeInspectorModal.tsx
-│   │   └── VivaFlashcardsModal.tsx
+│   │   ├── VivaFlashcardsModal.tsx
+│   │   ├── LabReportModal.tsx
+│   │   ├── BurpProxyModal.tsx
+│   │   ├── PayloadLibraryModal.tsx
+│   │   └── SecurityHeadersAuditor.tsx
 │   ├── modules/
 │   │   ├── sqli/
-│   │   │   ├── SqliModule.tsx
-│   │   │   ├── BankingLogin.tsx
-│   │   │   ├── CustomerSearch.tsx
-│   │   │   └── AdminPanel.tsx
 │   │   ├── xss/
-│   │   │   ├── XssModule.tsx
-│   │   │   ├── FeedbackForm.tsx
-│   │   │   └── FeedbackSearch.tsx
 │   │   ├── parameter-tampering/
-│   │   │   ├── ParameterTamperingModule.tsx
-│   │   │   ├── IdorShop.tsx
-│   │   │   └── PriceTamperingCheckout.tsx
 │   │   ├── password-guessing/
-│   │   │   ├── PasswordGuessingModule.tsx
-│   │   │   ├── DictionaryAttackSimulator.tsx
-│   │   │   └── CaptchaModal.tsx
 │   │   └── full-app/
-│   │       └── FullAppModule.tsx
 │   └── data/
 │       └── mockData.ts
 ```

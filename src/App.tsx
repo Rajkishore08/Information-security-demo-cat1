@@ -4,6 +4,11 @@ import { Navbar } from './components/Navbar';
 import { TerminalLogs } from './components/TerminalLogs';
 import { CodeInspectorModal } from './components/CodeInspectorModal';
 import { VivaFlashcardsModal } from './components/VivaFlashcardsModal';
+import { LabReportModal } from './components/LabReportModal';
+import { BurpProxyModal } from './components/BurpProxyModal';
+import { PayloadLibraryModal } from './components/PayloadLibraryModal';
+import { SecurityHeadersAuditor } from './components/SecurityHeadersAuditor';
+
 import { SqliModule } from './modules/sqli/SqliModule';
 import { XssModule } from './modules/xss/XssModule';
 import { ParameterTamperingModule } from './modules/parameter-tampering/ParameterTamperingModule';
@@ -30,7 +35,7 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Footer Banner */}
-      <footer className="border-t border-gray-800/80 bg-gray-950/80 py-4 px-4 text-center text-xs text-gray-400">
+      <footer className="border-t border-gray-800/80 bg-gray-950/80 py-4 px-4 text-center text-xs text-gray-400 print:hidden">
         <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Award className="h-4 w-4 text-indigo-400" />
@@ -62,6 +67,10 @@ const AppContent: React.FC = () => {
       <TerminalLogs isOpen={isTerminalOpen} onClose={() => setIsTerminalOpen(false)} />
       <CodeInspectorModal />
       <VivaFlashcardsModal />
+      <LabReportModal />
+      <BurpProxyModal />
+      <PayloadLibraryModal />
+      <SecurityHeadersAuditor />
     </div>
   );
 };

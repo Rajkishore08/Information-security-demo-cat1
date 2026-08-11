@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Mode, ModuleId, LogEntry, BankCustomer, FeedbackItem, Order } from '../types/security';
 import { INITIAL_CUSTOMERS, INITIAL_FEEDBACKS } from '../data/mockData';
+import confetti from 'canvas-confetti';
 
 interface SecurityContextType {
   mode: Mode;
@@ -40,6 +41,17 @@ interface SecurityContextType {
   setIsCodeModalOpen: (open: boolean) => void;
   isVivaModalOpen: boolean;
   setIsVivaModalOpen: (open: boolean) => void;
+  isReportModalOpen: boolean;
+  setIsReportModalOpen: (open: boolean) => void;
+  isProxyModalOpen: boolean;
+  setIsProxyModalOpen: (open: boolean) => void;
+  isPayloadModalOpen: boolean;
+  setIsPayloadModalOpen: (open: boolean) => void;
+  isHeadersModalOpen: boolean;
+  setIsHeadersModalOpen: (open: boolean) => void;
+
+  // Visual Effects
+  triggerConfetti: () => void;
 }
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
@@ -64,6 +76,22 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Modals
   const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
   const [isVivaModalOpen, setIsVivaModalOpen] = useState<boolean>(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
+  const [isProxyModalOpen, setIsProxyModalOpen] = useState<boolean>(false);
+  const [isPayloadModalOpen, setIsPayloadModalOpen] = useState<boolean>(false);
+  const [isHeadersModalOpen, setIsHeadersModalOpen] = useState<boolean>(false);
+
+  const triggerConfetti = () => {
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch {
+      // Fallback
+    }
+  };
 
   const setMode = (newMode: Mode) => {
     setModeState(newMode);
@@ -97,6 +125,10 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       details
     };
     setLogs((prev) => [newLog, ...prev]);
+
+    if (level === 'exploit') {
+      triggerConfetti();
+    }
   };
 
   const clearLogs = () => {
@@ -208,7 +240,16 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isCodeModalOpen,
         setIsCodeModalOpen,
         isVivaModalOpen,
-        setIsVivaModalOpen
+        setIsVivaModalOpen,
+        isReportModalOpen,
+        setIsReportModalOpen,
+        isProxyModalOpen,
+        setIsProxyModalOpen,
+        isPayloadModalOpen,
+        setIsPayloadModalOpen,
+        isHeadersModalOpen,
+        setIsHeadersModalOpen,
+        triggerConfetti
       }}
     >
       {children}
