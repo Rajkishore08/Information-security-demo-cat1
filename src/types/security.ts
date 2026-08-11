@@ -80,30 +80,28 @@ export interface VivaQA {
   category: string;
 }
 
-export interface EnterpriseAnnouncement {
-  id: string;
-  author: string;
+export interface FirmSecret {
+  id: number;
   title: string;
-  content: string;
-  createdAt: string;
-  isXssExecuted?: boolean;
-}
-
-export interface EnterpriseEmployee {
-  empId: number;
-  name: string;
-  department: string;
-  salary: number;
-  performanceReview: string;
+  category: string;
+  secretKey: string;
+  environment: string;
+  accessRole: 'Developer' | 'DevOps' | 'CTO Admin';
   isConfidential: boolean;
 }
 
-export interface ProjectUseCase {
-  id: 'airline' | 'securebank' | 'saas' | 'cloudvault';
-  projectTitle: string;
-  studentName: string;
-  rollNo: string;
-  conceptsUsed: string[];
-  themeColor: string;
-  description: string;
+export interface FirmNote {
+  id: string;
+  author: string;
+  topic: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface SoftwareLicense {
+  id: number;
+  softwareName: string;
+  licenseTier: string;
+  tierPrice: number;
+  allowedSeats: number;
 }

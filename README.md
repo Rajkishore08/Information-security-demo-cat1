@@ -7,23 +7,16 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 
 ---
 
-## 🌟 Key Features & Student Project Use-Cases
+## 🌟 Software Firm Vault Target Application (Module 5)
 
-### 🎓 Interactive Student Project Title Selector & Standalone Target Window
-Allows switching between real-time target applications tailored to specific student project titles and roll numbers:
+Module 5 features a real-time **ApexSoft Developer Credential & Secrets Vault** software firm application:
 
-1. **Smart Airline Booking & Security Portal ("SkyWings Airlines")**
-   - **Student**: Aakash B (Roll No: `7176 22 31 001`)
-   - **Concepts Implemented**: SQL Injection (Flight Search), Parameter Tampering (First Class Ticket ₹18,000 → ₹100), Phishing Link Generator, IDN Homograph Cyrillic Domain Spoofing (`skуwings.com` vs `skywings.com`), Passenger Review XSS.
-2. **SecureBank Core Banking Portal ("SecureBank")**
-   - **Student**: Anugraha VS (Roll No: `7176 22 31 003`)
-   - **Concepts Implemented**: SQL Injection (Login Auth Bypass `' OR '1'='1`), Parameter Tampering, URL Interpretation / IDOR (`?account_id=999` VIP Vault), Response Timing Attack Analyzer (ms delay comparison), Password Brute Force.
-3. **SaaS Subscription Portal ("CloudSaaS Suite")**
-   - **Student**: Avanthika PG (Roll No: `7176 22 31 008`)
-   - **Concepts Implemented**: SQL Injection (Plan Lookup), Password Guessing (Tenant Admin Login), Support Desk XSS, Parameter Tampering (Enterprise Plan ₹0 upgrade), Subscription Phishing.
-4. **Cloud Vault Application ("CyberVault Drive")**
-   - **Student**: Student Project 010 (Roll No: `7176 22 31 010`)
-   - **Concepts Implemented**: SQL Injection (Directory Search), Cross-Site Scripting (Shared Note), Parameter Tampering (`access_level=9` Root Vault), Local File Inclusion (LFI `?file=../../../../etc/passwd`), Password Guessing.
+- **🔑 Secrets & API Key Manager**: Query internal API keys, PostgreSQL credentials, AWS keys, and restricted CTO Master Vault tokens (SQLi & IDOR Secret Lookup `?secret_id=999`).
+- **🔐 Engineer Auth Portal**: Login gateway supporting SQL Injection bypass (`' OR '1'='1`) and password guessing attacks.
+- **📢 Developer Board & Audit Logs**: Real-time team announcement feed demonstrating Stored XSS (`<script>alert(document.cookie)</script>`).
+- **📜 Software License Procurement**: License purchasing module demonstrating Parameter Tampering (Tampering SAST Suite from ₹1,20,000 to ₹10).
+- **🖥️ Server Diagnostics & Log Viewer**: Internal system tools demonstrating Local File Inclusion (LFI `?file=../../../../etc/passwd`) and OS Command Injection (`8.8.8.8; cat /etc/passwd`).
+- **↗️ Standalone Window Launcher**: Dedicated, distraction-free target window sandbox.
 
 ---
 

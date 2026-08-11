@@ -1,560 +1,836 @@
 import React, { useState } from 'react';
 import { useSecurity } from '../../context/SecurityContext';
-import { PROJECT_USE_CASES } from '../../data/mockData';
-import type { ProjectUseCase } from '../../types/security';
+import { INITIAL_FIRM_SECRETS, INITIAL_FIRM_NOTES } from '../../data/mockData';
+import type { FirmSecret, FirmNote, Order } from '../../types/security';
 import { 
-  Plane, 
-  Cloud, 
   FolderLock, 
+  Key, 
+  Lock, 
+  Megaphone, 
+  Server, 
+  ShoppingCart, 
   Search, 
-  Sparkles, 
-  Globe, 
-  Clock, 
-  CheckCircle2, 
+  Send, 
+  Terminal, 
+  SlidersHorizontal,
   Maximize2, 
   X,
   Copy,
   Check,
-  DollarSign
+  UserCheck
 } from 'lucide-react';
 
 export const FullAppModule: React.FC = () => {
-  const { mode, addLog } = useSecurity();
-  const [selectedUseCaseId, setSelectedUseCaseId] = useState<ProjectUseCase['id']>('airline');
+  const { mode, addLog, addOrder } = useSecurity();
+  const [activeTab, setActiveTab] = useState<'secrets' | 'auth' | 'notices' | 'licenses' | 'diagnostics'>('secrets');
   const [isStandaloneOpen, setIsStandaloneOpen] = useState<boolean>(false);
+  const [isTestBenchOpen, setIsTestBenchOpen] = useState<boolean>(true);
 
-  const activeUseCase = PROJECT_USE_CASES.find((u) => u.id === selectedUseCaseId) || PROJECT_USE_CASES[0];
+  // Authenticated User Session
+  const [sessionUser, setSessionUser] = useState<{ name: string; role: string; empId: number } | null>({
+    name: 'Dev Lead (Rohan)',
+    role: 'Developer',
+    empId: 104
+  });
 
-  // 1. Airline State
-  const [airlineFlightSearch, setAirlineFlightSearch] = useState<string>("DELHI' OR '1'='1");
-  const [airlineFlightResults, setAirlineFlightResults] = useState<string[]>([]);
-  const [airlineTicketPrice, setAirlineTicketPrice] = useState<number>(100);
-  const [airlineBookingResult, setAirlineBookingResult] = useState<string | null>(null);
-  const [airlinePassengerReview, setAirlinePassengerReview] = useState<string>('<script>alert("Passenger XSS Executed! Cookie stolen.")</script>');
-  const [airlineReviews, setAirlineReviews] = useState<string[]>([
-    'In-flight wifi was extremely fast!',
-    'Great legroom in economy section.'
-  ]);
+  // 1. Auth State (SQLi & Brute Force)
+  const [loginUser, setLoginUser] = useState<string>("' OR '1'='1");
+  const [loginPass, setLoginPass] = useState<string>('anything');
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // 2. Secret Lookup State (IDOR & SQLi)
+  const [secretQueryId, setSecretQueryId] = useState<number>(999);
+  const [displayedSecret, setDisplayedSecret] = useState<FirmSecret | null>(INITIAL_FIRM_SECRETS[3]); // Restricted CTO Master Key
+  const [secretError, setSecretError] = useState<string | null>(null);
+
+  // 3. Notice Board State (Stored XSS)
+  const [notes, setNotes] = useState<FirmNote[]>(INITIAL_FIRM_NOTES);
+  const [noteTopic, setNoteTopic] = useState<string>('API Key Rotation Warning');
+  const [noteContent, setNoteContent] = useState<string>('<script>alert("Vault Cookie Stolen: " + document.cookie)</script>');
   const [activeXssAlert, setActiveXssAlert] = useState<string | null>(null);
 
-  // 2. SecureBank State
-  const [bankAccountQuery, setBankAccountQuery] = useState<number>(999);
-  const [bankAccountResult, setBankAccountResult] = useState<string | null>(null);
-  const [timingLog, setTimingLog] = useState<{ user: string; ms: number } | null>(null);
+  // 4. Software License Store (Price Tampering)
+  const [selectedLicensePrice, setSelectedLicensePrice] = useState<number>(10);
+  const [lastLicenseOrder, setLastLicenseOrder] = useState<Order | null>(null);
 
-  // 3. SaaS State
-  const [saasPlanSearch, setSaasPlanSearch] = useState<string>("ENTERPRISE' OR '1'='1");
-  const [saasTamperedPlanPrice, setSaasTamperedPlanPrice] = useState<number>(0);
-
-  // 4. Cloud Vault State (LFI & IDOR)
-  const [lfiFilePath, setLfiFilePath] = useState<string>('../../../../etc/passwd');
+  // 5. Diagnostics & Log Viewer (LFI & Command Injection)
+  const [lfiPath, setLfiPath] = useState<string>('../../../../etc/passwd');
   const [lfiOutput, setLfiOutput] = useState<string | null>(null);
-  const [vaultAccessLevel, setVaultAccessLevel] = useState<number>(9);
+  const [pingHost, setPingHost] = useState<string>('8.8.8.8; cat /etc/passwd');
+  const [pingOutput, setPingOutput] = useState<string | null>(null);
 
-  // Copy helper
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedLink(text);
-    setTimeout(() => setCopiedLink(null), 2000);
+  const copyText = (txt: string) => {
+    navigator.clipboard.writeText(txt);
+    setCopiedText(txt);
+    setTimeout(() => setCopiedText(null), 2000);
   };
 
-  // --- HANDLERS FOR AIRLINE PORTAL ---
-  const handleAirlineFlightSearch = (e: React.FormEvent) => {
+  // --- HANDLERS ---
+
+  // Auth Handler
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
+
     if (mode === 'vulnerable') {
-      const sql = `SELECT * FROM flights WHERE origin = '${airlineFlightSearch}';`;
-      addLog('vuln', 'AIRLINE SQLi', `Unsafe flight query:`, sql);
-      if (airlineFlightSearch.includes("' OR '1'='1") || airlineFlightSearch.includes("' OR 1=1")) {
-        setAirlineFlightResults([
-          'FL-101: Delhi → Mumbai (First Class - ₹18,000)',
-          'FL-204: Bangalore → London (Business Class - ₹85,000)',
-          'FL-999: RESTRICTED VIP CHARTER FLIGHT (Executive Jet - ₹4,50,000)'
-        ]);
-        addLog('exploit', 'AIRLINE SQLi EXPLOIT', '⚡ Exfiltrated restricted VIP charter flights via SQLi bypass!');
+      const sql = `SELECT * FROM firm_users WHERE username = '${loginUser}' AND password = '${loginPass}';`;
+      addLog('vuln', 'FIRM VAULT AUTH', 'Executing dynamic SQL login query:', sql);
+
+      if (loginUser.includes("' OR '1'='1") || loginUser.includes("' OR 1=1")) {
+        setSessionUser({ name: 'CTO Root Admin', role: 'CTO Admin', empId: 999 });
+        addLog('exploit', 'SQLi EXPLOIT', '⚡ Authenticated as CTO Root Admin via SQL Injection bypass!');
+      } else if (loginUser === 'admin123' || loginUser === 'welcome') {
+        setSessionUser({ name: 'DevOps Lead', role: 'DevOps', empId: 102 });
+        addLog('exploit', 'BRUTE FORCE EXPLOIT', `⚡ Authenticated via password guessing attack!`);
       } else {
-        setAirlineFlightResults(['FL-101: Delhi → Mumbai (₹18,000)']);
+        setLoginError('Invalid login credentials.');
       }
     } else {
-      addLog('secure', 'AIRLINE SQLi DEFENSE', `Executing Prepared Statement lookup for origin "${airlineFlightSearch}"`);
-      setAirlineFlightResults(['No flights found matching exact literal string origin.']);
+      addLog('secure', 'FIRM VAULT AUTH', `Executing Prepared Statement lookup for "${loginUser}"`);
+      if (loginUser === 'admin' && loginPass === 'Secr3tP@ss') {
+        setSessionUser({ name: 'CTO Root Admin', role: 'CTO Admin', empId: 999 });
+        addLog('secure', 'FIRM VAULT AUTH', 'Authentication successful for exact string match.');
+      } else {
+        setLoginError('Authentication Failed: Prepared Statement rejected non-matching string input.');
+      }
     }
   };
 
-  const handleAirlineBooking = (e: React.FormEvent) => {
-    e.preventDefault();
-    const verifiedPrice = 18000; // Original First Class Ticket Price
-    const charged = mode === 'vulnerable' ? airlineTicketPrice : verifiedPrice;
+  // Secret Lookup Handler (IDOR)
+  const handleSecretLookup = (idToFetch: number) => {
+    setSecretQueryId(idToFetch);
+    setSecretError(null);
+
+    const secret = INITIAL_FIRM_SECRETS.find((s) => s.id === idToFetch);
 
     if (mode === 'vulnerable') {
-      setAirlineBookingResult(`CONFIRMED: First Class Flight Ticket booked for ₹${charged} (Submitted price ₹${airlineTicketPrice})`);
-      addLog('vuln', 'AIRLINE PRICE TAMPERING', `Processed ticket booking at client-submitted price ₹${airlineTicketPrice}`);
-      if (charged < verifiedPrice) {
-        addLog('exploit', 'PRICE TAMPERING EXPLOIT', `⚡ Purchased ₹18,000 First Class Ticket for ₹${charged}!`);
+      if (secret) {
+        setDisplayedSecret(secret);
+        addLog('vuln', 'VAULT SECRET IDOR', `Fetched secret ID ${idToFetch} without authorization verification.`);
+        if (secret.isConfidential) {
+          addLog('exploit', 'IDOR EXPLOIT', '⚡ UNLOCKED RESTRICTED CTO MASTER KEY via ?secret_id=999 tampering!');
+        }
+      } else {
+        setDisplayedSecret(null);
       }
     } else {
-      setAirlineBookingResult(`CONFIRMED: First Class Flight Ticket booked for ₹${verifiedPrice} (Server DB Verified Price)`);
-      addLog('secure', 'AIRLINE PRICE DEFENSE', `Server overridden client price input ₹${airlineTicketPrice} with DB price ₹${verifiedPrice}`);
+      if (secret) {
+        if (secret.isConfidential && (!sessionUser || sessionUser.role !== 'CTO Admin')) {
+          setDisplayedSecret(null);
+          setSecretError(`HTTP 403 Forbidden: Secret ID ${idToFetch} is RESTRICTED to CTO Admin. Current role [${sessionUser ? sessionUser.role : 'Guest'}] is unauthorized.`);
+          addLog('secure', 'IDOR DEFENSE', `🔒 Access denied to restricted secret ID ${idToFetch}`);
+        } else {
+          setDisplayedSecret(secret);
+          addLog('secure', 'IDOR DEFENSE', `Verified authorization for secret ID ${idToFetch}`);
+        }
+      } else {
+        setDisplayedSecret(null);
+      }
     }
   };
 
-  const handleAirlineReviewPost = (e: React.FormEvent) => {
+  // Notice Board Handler (Stored XSS)
+  const handlePostNote = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveXssAlert(null);
-    const containsScript = airlinePassengerReview.includes('<script>') || airlinePassengerReview.includes('onerror=');
+
+    const containsScript = noteContent.includes('<script>') || noteContent.includes('onerror=');
 
     if (mode === 'vulnerable') {
-      setAirlineReviews((prev) => [airlinePassengerReview, ...prev]);
-      addLog('vuln', 'AIRLINE XSS', 'Unsanitized passenger review posted:', airlinePassengerReview);
+      const newNote: FirmNote = {
+        id: `note-${Date.now()}`,
+        author: sessionUser ? sessionUser.name : 'Anonymous Engineer',
+        topic: noteTopic || 'General Announcement',
+        content: noteContent,
+        createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
+      };
+      setNotes((prev) => [newNote, ...prev]);
+      addLog('vuln', 'FIRM NOTE XSS', 'Unsanitized HTML posted to Developer Board:', noteContent);
+
       if (containsScript) {
-        addLog('exploit', 'STORED XSS EXPLOIT', '⚡ Passenger review XSS script executed in browser!');
-        setActiveXssAlert(`⚡ AIRLINE PASSENGER REVIEW XSS POPUP!\nExecuted JavaScript:\n"${airlinePassengerReview}"`);
+        addLog('exploit', 'STORED XSS EXPLOIT', '⚡ Stored XSS script executed on Developer Board!');
+        setActiveXssAlert(`⚡ STORED XSS POPUP TRIGGERED!\nExecuted JavaScript in session:\n"${noteContent}"`);
       }
     } else {
-      const safe = airlinePassengerReview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      setAirlineReviews((prev) => [safe, ...prev]);
-      addLog('secure', 'AIRLINE XSS DEFENSE', 'Review sanitized via htmlspecialchars().');
+      const safe = noteContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const newNote: FirmNote = {
+        id: `note-${Date.now()}`,
+        author: sessionUser ? sessionUser.name : 'Anonymous Engineer',
+        topic: noteTopic || 'General Announcement',
+        content: safe,
+        createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
+      };
+      setNotes((prev) => [newNote, ...prev]);
+      addLog('secure', 'FIRM NOTE XSS DEFENSE', 'Content sanitized via htmlspecialchars().');
+    }
+
+    setNoteTopic('');
+    setNoteContent('');
+  };
+
+  // License Order Handler (Price Tampering)
+  const handleLicenseCheckout = (e: React.FormEvent) => {
+    e.preventDefault();
+    const verifiedPrice = 120000; // SAST Suite Original Price
+    const charged = mode === 'vulnerable' ? selectedLicensePrice : verifiedPrice;
+
+    const order: Order = {
+      orderId: `FIRM-LIC-${Date.now().toString().slice(-6)}`,
+      productName: 'ApexSoft Security Audit & SAST Suite',
+      quantity: 1,
+      unitPriceSubmitted: selectedLicensePrice,
+      unitPriceVerified: verifiedPrice,
+      totalPaid: charged,
+      status: charged < verifiedPrice ? 'PRICE_TAMPERED' : 'SUCCESS',
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    addOrder(order);
+    setLastLicenseOrder(order);
+
+    if (mode === 'vulnerable') {
+      addLog('vuln', 'LICENSE PRICE TAMPERING', `Processed license purchase at client-submitted price ₹${selectedLicensePrice}`);
+      if (charged < verifiedPrice) {
+        addLog('exploit', 'PRICE TAMPERING EXPLOIT', `⚡ Purchased ₹1,20,000 SAST Suite for ₹${charged}!`);
+      }
+    } else {
+      addLog('secure', 'LICENSE PRICE DEFENSE', `Server overridden client price input ₹${selectedLicensePrice} with DB price ₹${verifiedPrice.toLocaleString()}`);
     }
   };
 
-  // --- HANDLERS FOR SECUREBANK PORTAL ---
-  const handleBankIdorLookup = (e: React.FormEvent) => {
+  // LFI Handler
+  const handleLfiRead = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'vulnerable') {
-      if (bankAccountQuery === 999) {
-        setBankAccountResult('ACC-999: VIP Executive Reserve Vault (Balance: ₹4,50,00,000.00 | SSN: ***-**-9912 | Owner: Chairman)');
-        addLog('exploit', 'BANK IDOR EXPLOIT', '⚡ Accessed confidential VIP reserve vault via ?account_id=999 IDOR!');
-      } else {
-        setBankAccountResult(`ACC-${bankAccountQuery}: Standard Savings Account (Balance: ₹45,200.00)`);
-      }
-    } else {
-      if (bankAccountQuery === 999) {
-        setBankAccountResult('HTTP 403 Forbidden: Account ACC-999 is restricted to Executive Board.');
-        addLog('secure', 'BANK IDOR DEFENSE', '🔒 Access denied to restricted account ACC-999');
-      } else {
-        setBankAccountResult(`ACC-${bankAccountQuery}: Standard Savings Account (Balance: ₹45,200.00)`);
-      }
-    }
-  };
+      const rawCode = `include("/var/www/firm_vault/" . "${lfiPath}");`;
+      addLog('vuln', 'FIRM LFI', 'Unsafe include() execution:', rawCode);
 
-  const handleTimingAttackTest = (userToTest: string) => {
-    const isExistingUser = userToTest === 'admin';
-    const responseMs = isExistingUser ? 320 : 15; // Valid user takes longer due to password hash verification delay!
-    setTimingLog({ user: userToTest, ms: responseMs });
-
-    if (mode === 'vulnerable') {
-      addLog(
-        'vuln',
-        'TIMING ATTACK',
-        `Response time difference detected: User '${userToTest}' responded in ${responseMs}ms`,
-        `// Vulnerable Code Delay Analysis:\nValid User 'admin': 320ms (password_verify hash check executed)\nInvalid User 'foo': 15ms (returned immediately)`,
-        { username: userToTest, responseDelayMs: responseMs }
-      );
-    } else {
-      addLog(
-        'secure',
-        'TIMING ATTACK DEFENSE',
-        `Constant time authentication response enforced (300ms uniform delay for all users)`,
-        `// Secure Constant-Time Defense:\nusleep(300000); // Equalized response timing`
-      );
-    }
-  };
-
-  // --- HANDLERS FOR CLOUD VAULT (LFI) ---
-  const handleLfiExecute = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'vulnerable') {
-      const rawCmd = `include("/var/www/uploads/" . "${lfiFilePath}");`;
-      addLog('vuln', 'LOCAL FILE INCLUSION', 'Unsafe include() execution:', rawCmd);
-
-      if (lfiFilePath.includes('..')) {
-        const simulatedPasswd = `root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/bin/bash\ncloudvault_admin:x:1001:1001:Cloud Vault Root Administrator,,,:/home/cloudvault_admin:/bin/bash`;
+      if (lfiPath.includes('..')) {
+        const simulatedPasswd = `root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/bin/bash\napexsoft_cto:x:1001:1001:ApexSoft CTO Admin,,,:/home/apexsoft_cto:/bin/bash`;
         setLfiOutput(simulatedPasswd);
-        addLog('exploit', 'LFI EXPLOIT', '⚡ Local File Inclusion read system /etc/passwd file via path traversal!', simulatedPasswd);
+        addLog('exploit', 'LFI EXPLOIT', '⚡ Path traversal read system /etc/passwd file!', simulatedPasswd);
       } else {
-        setLfiOutput(`[File Content of ${lfiFilePath}]: Standard cloud document header.`);
+        setLfiOutput(`[File Content of ${lfiPath}]: Firm log file content.`);
       }
     } else {
-      const isPathTraversal = lfiFilePath.includes('..') || lfiFilePath.startsWith('/');
-      if (isPathTraversal) {
-        setLfiOutput(`ERROR: Path traversal sequence detected in filename "${lfiFilePath}". Access denied by basename() whitelist policy.`);
-        addLog('secure', 'LFI DEFENSE', `🔒 LFI attack blocked by basename() sanitization filter.`);
+      if (lfiPath.includes('..')) {
+        setLfiOutput(`ERROR: Path traversal sequence detected in filename "${lfiPath}". Access denied by basename() filter.`);
+        addLog('secure', 'LFI DEFENSE', `🔒 LFI attack blocked by basename() filter.`);
       } else {
-        setLfiOutput(`[File Content of ${lfiFilePath}]: Safe file load.`);
+        setLfiOutput(`[File Content of ${lfiPath}]: Safe file load.`);
+      }
+    }
+  };
+
+  // Command Injection Handler
+  const handlePingExec = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'vulnerable') {
+      const cmd = `ping -c 2 ${pingHost}`;
+      addLog('vuln', 'COMMAND INJECTION', 'Executing raw shell command:', cmd);
+
+      if (pingHost.includes(';') || pingHost.includes('|') || pingHost.includes('&')) {
+        const out = `PING 8.8.8.8 (8.8.8.8): 56 data bytes\n64 bytes from 8.8.8.8: icmp_seq=0 ttl=117 time=14.2 ms\n\n--- Executing Secondary Injected Command: cat /etc/passwd ---\nroot:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/bin/bash\napexsoft_admin:x:1001:1001:ApexSoft System Admin,,,:/home/apexsoft_admin:/bin/bash`;
+        setPingOutput(out);
+        addLog('exploit', 'COMMAND INJECTION EXPLOIT', '⚡ OS Command Injection read /etc/passwd system files!', out);
+      } else {
+        setPingOutput(`PING ${pingHost} (${pingHost}): 56 data bytes\n64 bytes from ${pingHost}: icmp_seq=0 ttl=117 time=12.4 ms\n--- ${pingHost} ping statistics ---\n1 packets transmitted, 1 packets received, 0.0% packet loss`);
+      }
+    } else {
+      const isValidIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(pingHost.trim());
+      if (!isValidIp) {
+        setPingOutput(`ERROR: Host parameter "${pingHost}" rejected. Failed IP format validation (FILTER_VALIDATE_IP). Command execution blocked.`);
+        addLog('secure', 'COMMAND INJECTION DEFENSE', `🔒 Command injection attempt blocked by IP validation filter.`);
+      } else {
+        setPingOutput(`PING ${pingHost} (${pingHost}): 56 data bytes\n64 bytes from ${pingHost}: icmp_seq=0 ttl=117 time=12.4 ms\n--- ${pingHost} ping statistics ---\n1 packets transmitted, 1 packets received, 0.0% packet loss`);
       }
     }
   };
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Top Banner & Project Selector */}
-      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4 sm:p-6 shadow-2xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
+      {/* Firm Vault App Header Bar */}
+      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4 sm:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-purple-700 text-white shadow-lg">
+            <FolderLock className="h-6 w-6" />
+          </div>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              Integrated Project Use-Case Target Applications
-              <span className="rounded bg-indigo-950 px-2 py-0.5 text-xs text-indigo-400 border border-indigo-800">
-                Viva Assessment Ready
+              ApexSoft Developer Credential & Secrets Vault
+              <span className="rounded bg-red-950 px-2 py-0.5 text-xs text-red-400 border border-red-800 font-mono font-bold">
+                REAL-TIME TARGET
               </span>
             </h2>
-            <p className="text-xs text-gray-400">Select a real-time use-case target application mapped to your project title & student credentials</p>
+            <p className="text-xs text-gray-400">Software Firm Enterprise Vault with All Exploit Vectors Exposed</p>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {sessionUser ? (
+            <div className="flex items-center gap-2 rounded-xl bg-gray-900 px-3 py-1.5 border border-gray-800 text-xs">
+              <UserCheck className="h-4 w-4 text-emerald-400" />
+              <div>
+                <span className="font-bold text-white block leading-tight">{sessionUser.name}</span>
+                <span className="text-[10px] text-purple-300 font-mono">{sessionUser.role}</span>
+              </div>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-500 font-mono">Session: Unauthenticated Guest</span>
+          )}
 
           <button
             onClick={() => setIsStandaloneOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-xs font-bold text-white shadow-lg transition"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 px-4 py-2 text-xs font-bold text-white shadow-lg transition"
           >
             <Maximize2 className="h-4 w-4" />
-            <span>Launch Standalone Target Window ↗️</span>
+            <span>Standalone Window ↗️</span>
           </button>
         </div>
-
-        {/* Project Selector Tabs Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {PROJECT_USE_CASES.map((uc) => {
-            const isSelected = selectedUseCaseId === uc.id;
-            return (
-              <button
-                key={uc.id}
-                onClick={() => setSelectedUseCaseId(uc.id)}
-                className={`p-3.5 rounded-xl border text-left transition ${
-                  isSelected
-                    ? 'border-indigo-500 bg-indigo-950/60 shadow-lg shadow-indigo-950/50 ring-1 ring-indigo-500/50'
-                    : 'border-gray-800 bg-gray-900/60 hover:bg-gray-800/60 hover:border-gray-700'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-white truncate">{uc.projectTitle}</span>
-                  {isSelected && <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />}
-                </div>
-                <p className="text-[11px] text-indigo-300 font-bold">{uc.studentName} ({uc.rollNo})</p>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {uc.conceptsUsed.slice(0, 3).map((c, i) => (
-                    <span key={i} className="rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-gray-300 border border-gray-800">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* STUDENT METADATA & CONCEPTS BANNER */}
-      <div className={`rounded-2xl bg-gradient-to-r ${activeUseCase.themeColor} p-4 sm:p-6 text-white shadow-2xl space-y-2`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/20 pb-3">
-          <div>
-            <span className="text-[10px] uppercase tracking-wider font-mono bg-black/40 px-2 py-0.5 rounded text-white font-bold">
-              Project Title Use-Case:
+      {/* QUICK ATTACK WORKBENCH & PAYLOAD PRESET TEST BENCH */}
+      <div className="rounded-2xl border border-red-900/60 bg-gray-900/90 shadow-2xl overflow-hidden">
+        <button
+          onClick={() => setIsTestBenchOpen((prev) => !prev)}
+          className="w-full flex items-center justify-between bg-red-950/80 px-4 sm:px-6 py-3 border-b border-red-900/60 text-left transition hover:bg-red-900/60"
+        >
+          <div className="flex items-center gap-2 text-red-200 font-bold text-xs sm:text-sm">
+            <SlidersHorizontal className="h-4 w-4 text-red-400" />
+            <span>⚡ Interactive Attack Test Bench & Quick Payload Injection Bar</span>
+            <span className="rounded bg-red-900 px-2 py-0.5 text-[10px] text-red-300 border border-red-700 font-mono font-bold">
+              Software Firm Vault Target
             </span>
-            <h3 className="text-lg sm:text-xl font-black mt-1">{activeUseCase.projectTitle}</h3>
           </div>
-          <div className="text-right text-xs font-mono">
-            <span className="block font-bold">Student: {activeUseCase.studentName}</span>
-            <span className="text-white/80">Roll No: {activeUseCase.rollNo}</span>
-          </div>
-        </div>
+          <span className="text-xs text-red-300">{isTestBenchOpen ? 'Collapse' : 'Expand'}</span>
+        </button>
 
-        <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
-          <span className="font-bold text-white">Security Concepts Implemented:</span>
-          {activeUseCase.conceptsUsed.map((c, idx) => (
-            <span key={idx} className="rounded bg-black/40 px-2.5 py-1 text-xs font-bold text-white border border-white/20">
-              ⚡ {c}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* USE CASE 1: SMART AIRLINE BOOKING PORTAL */}
-      {selectedUseCaseId === 'airline' && (
-        <div className="space-y-6">
-          {/* Phishing & IDN Homograph Warning Banner */}
-          <div className="rounded-2xl border border-blue-900/60 bg-blue-950/40 p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-cyan-300 flex items-center gap-1.5">
-                <Globe className="h-4 w-4" /> IDN Homograph Cyrillic Domain Spoofing Simulator:
+        {isTestBenchOpen && (
+          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-950/80">
+            {/* Box 1: SQLi Login */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-blue-400 flex items-center gap-1">
+                <Lock className="h-3.5 w-3.5" /> 1. SQL Injection / Auth Bypass
               </span>
-              <button
-                onClick={() => copyToClipboard('http://skуwings.com/login')}
-                className="text-[11px] text-cyan-300 hover:text-white flex items-center gap-1"
-              >
-                {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                <span>{copiedLink ? 'Copied!' : 'Copy Spoofed Link'}</span>
-              </button>
-            </div>
-            <p className="text-xs text-gray-300">
-              Legitimate Domain: <code className="font-mono text-emerald-400 font-bold bg-black px-1.5 py-0.5 rounded">skywings.com</code> | 
-              Spoofed Cyrillic 'у' Domain: <code className="font-mono text-red-400 font-bold bg-black px-1.5 py-0.5 rounded">skуwings.com</code> (Punycode: <code className="font-mono text-amber-300">xn--skywings-j1a.com</code>)
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Flight Search (SQLi) */}
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <Plane className="h-5 w-5 text-cyan-400" />
-                Flight Search API (SQL Injection Target)
-              </h3>
-              <form onSubmit={handleAirlineFlightSearch} className="flex gap-2">
-                <input
-                  type="text"
-                  value={airlineFlightSearch}
-                  onChange={(e) => setAirlineFlightSearch(e.target.value)}
-                  placeholder="e.g. DELHI' OR '1'='1"
-                  className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                />
-                <button type="submit" className="rounded-xl bg-cyan-600 hover:bg-cyan-500 px-4 py-2 text-xs font-bold text-white">
-                  Search Flights
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    setLoginUser("' OR '1'='1");
+                    setLoginPass("anything");
+                    setActiveTab('auth');
+                  }}
+                  className="rounded bg-blue-950 hover:bg-blue-900 px-2 py-1 text-[11px] text-blue-200 border border-blue-800 transition"
+                >
+                  Preset: ' OR '1'='1
                 </button>
-              </form>
-
-              <div className="rounded-xl bg-black p-3 font-mono text-xs space-y-1">
-                <span className="text-gray-500 text-[10px] font-bold uppercase">Flight Search Results:</span>
-                {airlineFlightResults.map((r, i) => (
-                  <p key={i} className="text-cyan-300">{r}</p>
-                ))}
+                <button
+                  onClick={() => {
+                    setLoginUser("admin123");
+                    setLoginPass("welcome");
+                    setActiveTab('auth');
+                  }}
+                  className="rounded bg-gray-800 hover:bg-gray-700 px-2 py-1 text-[11px] text-gray-300 border border-gray-700 transition"
+                >
+                  Brute Force: admin123
+                </button>
               </div>
             </div>
 
-            {/* Ticket Price Tampering */}
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <DollarSign className="h-5 w-5 text-emerald-400" />
-                First Class Ticket Checkout (Price Tampering)
-              </h3>
-              <form onSubmit={handleAirlineBooking} className="space-y-3">
-                <div className="rounded-xl bg-black p-3 font-mono text-xs text-gray-300">
-                  <p>First Class Ticket Original Price: <span className="font-bold text-emerald-400">₹18,000</span></p>
-                  {mode === 'vulnerable' ? (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-red-400 font-bold">Tampered Ticket Price Input Box: ₹</span>
-                      <input
-                        type="number"
-                        value={airlineTicketPrice}
-                        onChange={(e) => setAirlineTicketPrice(parseFloat(e.target.value) || 0)}
-                        className="w-28 rounded bg-gray-900 px-2 py-0.5 text-red-300 font-bold border border-red-700"
-                      />
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-emerald-300">🟢 Secure Mode: Price validated on backend DB (₹18,000).</p>
-                  )}
-                </div>
-                <button type="submit" className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-2.5 text-xs font-bold text-white">
-                  Book Flight Ticket
+            {/* Box 2: Stored XSS Note */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-purple-400 flex items-center gap-1">
+                <Megaphone className="h-3.5 w-3.5" /> 2. Stored XSS Developer Note
+              </span>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    setNoteTopic("Security Audit");
+                    setNoteContent('<script>alert("Vault Session Stolen: " + document.cookie)</script>');
+                    setActiveTab('notices');
+                  }}
+                  className="rounded bg-purple-950 hover:bg-purple-900 px-2 py-1 text-[11px] text-purple-200 border border-purple-800 transition"
+                >
+                  Preset: &lt;script&gt; Cookie Theft
                 </button>
-              </form>
+              </div>
+            </div>
 
-              {airlineBookingResult && (
-                <div className="rounded-xl bg-gray-950 p-3 text-xs font-mono text-emerald-300 border border-gray-800">
-                  {airlineBookingResult}
+            {/* Box 3: IDOR Secret Key */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                <Key className="h-3.5 w-3.5" /> 3. IDOR Master Secret Key
+              </span>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    handleSecretLookup(999);
+                    setActiveTab('secrets');
+                  }}
+                  className="rounded bg-amber-950 hover:bg-amber-900 px-2 py-1 text-[11px] text-amber-200 border border-amber-800 transition"
+                >
+                  Fetch Restricted CTO Key ?secret_id=999
+                </button>
+              </div>
+            </div>
+
+            {/* Box 4: Price Tampering License */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <ShoppingCart className="h-3.5 w-3.5" /> 4. License Price Manipulation
+              </span>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    setSelectedLicensePrice(10);
+                    setActiveTab('licenses');
+                  }}
+                  className="rounded bg-emerald-950 hover:bg-emerald-900 px-2 py-1 text-[11px] text-emerald-200 border border-emerald-800 transition"
+                >
+                  Tamper SAST License to ₹10
+                </button>
+              </div>
+            </div>
+
+            {/* Box 5: LFI & Command Injection */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2 md:col-span-2">
+              <span className="text-xs font-bold text-red-400 flex items-center gap-1">
+                <Server className="h-3.5 w-3.5" /> 5. LFI File Read & Command Injection
+              </span>
+              <div className="flex gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    setLfiPath("../../../../etc/passwd");
+                    setActiveTab('diagnostics');
+                  }}
+                  className="rounded bg-red-950 hover:bg-red-900 px-2 py-1 text-[11px] text-red-200 border border-red-800 transition"
+                >
+                  LFI: ../../../../etc/passwd
+                </button>
+                <button
+                  onClick={() => {
+                    setPingHost("8.8.8.8; cat /etc/passwd");
+                    setActiveTab('diagnostics');
+                  }}
+                  className="rounded bg-red-950 hover:bg-red-900 px-2 py-1 text-[11px] text-red-200 border border-red-800 transition"
+                >
+                  RCE: 8.8.8.8; cat /etc/passwd
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* REAL FIRM VAULT APPLICATION NAVIGATION TABS */}
+      <div className="flex border-b border-gray-800 bg-gray-900/60 p-2 gap-2 rounded-2xl overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('secrets')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'secrets'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Key className="h-4 w-4" />
+          <span>Firm Secrets & API Keys</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('auth')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'auth'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Lock className="h-4 w-4" />
+          <span>Engineer Vault Auth</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('notices')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'notices'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Megaphone className="h-4 w-4" />
+          <span>Developer Board</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('licenses')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'licenses'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <ShoppingCart className="h-4 w-4" />
+          <span>Software Licenses</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('diagnostics')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'diagnostics'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Server className="h-4 w-4" />
+          <span>LFI & Server Diagnostics</span>
+        </button>
+      </div>
+
+      {/* VIEW 1: SECRETS & API KEYS (IDOR) */}
+      {activeTab === 'secrets' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Key className="h-5 w-5 text-amber-400" />
+                  Software Firm Secrets Lookup API (`/secrets.php?secret_id=...`)
+                </h3>
+                <p className="text-xs text-gray-400">Fetch internal API keys, database credentials, and cloud AWS tokens</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                <input
+                  type="number"
+                  value={secretQueryId}
+                  onChange={(e) => setSecretQueryId(parseInt(e.target.value, 10) || 101)}
+                  placeholder="Enter Secret ID Box (e.g. 101, 102, 999)"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 pl-10 pr-4 py-2.5 text-xs text-white font-mono"
+                />
+              </div>
+              <button
+                onClick={() => handleSecretLookup(secretQueryId)}
+                className="rounded-xl bg-amber-600 hover:bg-amber-500 px-6 py-2.5 text-xs font-bold text-white transition"
+              >
+                Fetch Secret Key
+              </button>
+            </div>
+          </div>
+
+          {secretError ? (
+            <div className="rounded-2xl border border-red-800 bg-red-950/40 p-6 text-center text-red-300 font-mono text-xs">
+              {secretError}
+            </div>
+          ) : displayedSecret ? (
+            <div className={`rounded-2xl border p-6 shadow-xl space-y-3 ${
+              displayedSecret.isConfidential ? 'border-red-700 bg-red-950/40' : 'border-gray-800 bg-gray-900/60'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-white text-sm">{displayedSecret.title} (Secret ID #{displayedSecret.id})</span>
+                <span className="rounded bg-purple-950 px-2 py-0.5 text-[10px] text-purple-300 font-bold">{displayedSecret.category}</span>
+              </div>
+              <div className="border-t border-gray-800 pt-3 text-xs space-y-2">
+                <div className="rounded bg-black p-3 font-mono text-xs text-emerald-300 border border-gray-800 flex items-center justify-between">
+                  <span>Secret Value: <strong className="text-amber-300">{displayedSecret.secretKey}</strong></span>
+                  <button onClick={() => copyText(displayedSecret.secretKey)} className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1">
+                    {copiedText === displayedSecret.secretKey ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    <span>{copiedText === displayedSecret.secretKey ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+                <div className="flex justify-between text-gray-400 text-[11px]">
+                  <span>Environment: {displayedSecret.environment}</span>
+                  <span>Required Access Role: {displayedSecret.accessRole}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* VIEW 2: AUTH PORTAL */}
+      {activeTab === 'auth' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Lock className="h-5 w-5 text-blue-400" />
+              Software Engineer Vault Authentication
+            </h3>
+
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Username / Payload Input Box:</label>
+                <input
+                  type="text"
+                  value={loginUser}
+                  onChange={(e) => setLoginUser(e.target.value)}
+                  placeholder="e.g. admin123 or ' OR '1'='1"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Password Input Box:</label>
+                <input
+                  type="password"
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                />
+              </div>
+
+              {loginError && (
+                <div className="rounded-xl bg-red-950/60 p-3 text-xs text-red-300 border border-red-800">
+                  {loginError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 py-3 text-xs font-bold text-white shadow-lg transition"
+              >
+                Authenticate Vault Access
+              </button>
+            </form>
+          </div>
+
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl flex flex-col justify-between">
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 font-mono">Current Session State</h4>
+              {sessionUser ? (
+                <div className="rounded-xl bg-emerald-950/40 p-4 border border-emerald-800 text-emerald-200 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    <UserCheck className="h-5 w-5 text-emerald-400" />
+                    <span>{sessionUser.name}</span>
+                  </div>
+                  <p className="text-xs">Role: <span className="font-bold text-amber-300 font-mono">{sessionUser.role}</span></p>
+                  <p className="text-xs text-gray-300">Employee ID: #{sessionUser.empId}</p>
+                </div>
+              ) : (
+                <div className="flex h-32 flex-col items-center justify-center text-gray-500 text-xs">
+                  <Lock className="h-6 w-6 mb-2 opacity-30" />
+                  <p>Unauthenticated Guest Session.</p>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Passenger Reviews (XSS) */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-              <Sparkles className="h-5 w-5 text-purple-400" />
-              Passenger Feedback & Reviews (Stored XSS Target)
+      {/* VIEW 3: DEVELOPER BOARD (XSS) */}
+      {activeTab === 'notices' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-purple-400" />
+              Post Developer Board Note
             </h3>
-            <form onSubmit={handleAirlineReviewPost} className="flex gap-2">
-              <input
-                type="text"
-                value={airlinePassengerReview}
-                onChange={(e) => setAirlinePassengerReview(e.target.value)}
-                placeholder="Enter review or XSS payload..."
-                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-              />
-              <button type="submit" className="rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-xs font-bold text-white">
-                Post Review
+
+            <form onSubmit={handlePostNote} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Topic:</label>
+                <input
+                  type="text"
+                  value={noteTopic}
+                  onChange={(e) => setNoteTopic(e.target.value)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Content Input Box (XSS Target):</label>
+                <textarea
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 py-3 text-xs font-bold text-white shadow-lg transition flex items-center justify-center gap-2"
+              >
+                <Send className="h-4 w-4" />
+                <span>Post Developer Note</span>
               </button>
             </form>
+          </div>
 
+          <div className="lg:col-span-7 space-y-4">
             {activeXssAlert && (
-              <div className="rounded-xl border border-red-700 bg-red-950 p-3 text-xs font-mono text-red-200">
+              <div className="rounded-xl border border-red-700 bg-red-950 p-4 text-xs font-mono text-red-200 animate-pulse-glow">
                 {activeXssAlert}
               </div>
             )}
 
-            <div className="space-y-2">
-              {airlineReviews.map((r, idx) => (
-                <div key={idx} className="rounded-lg bg-black p-2.5 text-xs font-mono text-purple-200 border border-gray-800">
-                  {mode === 'vulnerable' ? (
-                    <div dangerouslySetInnerHTML={{ __html: r }} />
-                  ) : (
-                    <div>{r}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* USE CASE 2: SECUREBANK PORTAL */}
-      {selectedUseCaseId === 'securebank' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Account Slip IDOR */}
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <Search className="h-5 w-5 text-emerald-400" />
-                Account Details Slip API (?account_id=... IDOR Target)
-              </h3>
-              <form onSubmit={handleBankIdorLookup} className="flex gap-2">
-                <input
-                  type="number"
-                  value={bankAccountQuery}
-                  onChange={(e) => setBankAccountQuery(parseInt(e.target.value, 10) || 999)}
-                  placeholder="Enter Account ID (e.g. 999)"
-                  className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                />
-                <button type="submit" className="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white">
-                  Fetch Account Slip
-                </button>
-              </form>
-
-              {bankAccountResult && (
-                <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300 border border-gray-800">
-                  {bankAccountResult}
-                </div>
-              )}
-            </div>
-
-            {/* Response Timing Attack Visualizer */}
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <Clock className="h-5 w-5 text-amber-400" />
-                Response Timing Attack Analyzer (User Enumeration)
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleTimingAttackTest('admin')}
-                  className="rounded-xl bg-amber-950 border border-amber-800 px-3 py-2 text-xs font-bold text-amber-300"
-                >
-                  Test Existing User ('admin')
-                </button>
-                <button
-                  onClick={() => handleTimingAttackTest('unknown_user')}
-                  className="rounded-xl bg-gray-800 border border-gray-700 px-3 py-2 text-xs font-bold text-gray-300"
-                >
-                  Test Non-Existing User
-                </button>
-              </div>
-
-              {timingLog && (
-                <div className="rounded-xl bg-black p-3 font-mono text-xs text-amber-300 border border-gray-800">
-                  User Tested: "{timingLog.user}" | Measured Response Delay: <span className="font-bold text-white">{timingLog.ms}ms</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* USE CASE 3: SAAS SUBSCRIPTION PORTAL */}
-      {selectedUseCaseId === 'saas' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <Cloud className="h-5 w-5 text-purple-400" />
-                Plan Upgrade Checkout (Price Tampering: Enterprise Plan ₹0)
-              </h3>
-              <div className="rounded-xl bg-black p-3 text-xs font-mono text-gray-300">
-                <p>Enterprise Tier Plan Original Cost: <span className="font-bold text-purple-400">₹49,999/yr</span></p>
-                {mode === 'vulnerable' ? (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-red-400 font-bold">Tampered Plan Price Input: ₹</span>
-                    <input
-                      type="number"
-                      value={saasTamperedPlanPrice}
-                      onChange={(e) => setSaasTamperedPlanPrice(parseFloat(e.target.value) || 0)}
-                      className="w-28 rounded bg-gray-900 px-2 py-0.5 text-red-300 font-bold border border-red-700"
-                    />
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-3">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">Developer Audit & Announcement Feed</h4>
+              <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                {notes.map((n) => (
+                  <div key={n.id} className="rounded-xl border border-gray-800 bg-gray-950 p-4 space-y-1">
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span className="font-bold text-white">{n.topic}</span>
+                      <span>By {n.author} • {n.createdAt}</span>
+                    </div>
+                    {mode === 'vulnerable' ? (
+                      <div className="text-xs text-purple-200 pt-2 font-mono break-words" dangerouslySetInnerHTML={{ __html: n.content }} />
+                    ) : (
+                      <div className="text-xs text-emerald-200 pt-2 font-mono break-words">{n.content}</div>
+                    )}
                   </div>
-                ) : (
-                  <p className="mt-2 text-emerald-300">🟢 Secure Mode: Plan price verified on backend database (₹49,999).</p>
-                )}
+                ))}
               </div>
-            </div>
-
-            <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                <Search className="h-5 w-5 text-indigo-400" />
-                Subscription Directory Search (SQLi)
-              </h3>
-              <input
-                type="text"
-                value={saasPlanSearch}
-                onChange={(e) => setSaasPlanSearch(e.target.value)}
-                className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-              />
             </div>
           </div>
         </div>
       )}
 
-      {/* USE CASE 4: CLOUD VAULT (LFI) */}
-      {selectedUseCaseId === 'cloudvault' && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-              <FolderLock className="h-5 w-5 text-red-400" />
-              Cloud File Viewer API (?file=... Local File Inclusion / LFI Target)
+      {/* VIEW 4: SOFTWARE LICENSES (Price Tampering) */}
+      {activeTab === 'licenses' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-emerald-400" />
+              Software License Procurement
             </h3>
-            <form onSubmit={handleLfiExecute} className="flex gap-2">
-              <input
-                type="text"
-                value={lfiFilePath}
-                onChange={(e) => setLfiFilePath(e.target.value)}
-                placeholder="e.g. ../../../../etc/passwd"
-                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-              />
-              <button type="submit" className="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white">
-                Read File Content
+
+            <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 space-y-2">
+              <h4 className="text-sm font-bold text-white">ApexSoft Security Audit & SAST Suite</h4>
+              <p className="text-xs text-gray-400">Original Tier Catalog Price: ₹1,20,000</p>
+            </div>
+
+            <form onSubmit={handleLicenseCheckout} className="space-y-4">
+              {mode === 'vulnerable' ? (
+                <div className="rounded-xl bg-black p-3.5 border border-red-900/60 font-mono text-xs space-y-2">
+                  <span className="text-red-400 font-bold block">Tampered License Price Parameter Input Box: ₹</span>
+                  <input
+                    type="number"
+                    value={selectedLicensePrice}
+                    onChange={(e) => setSelectedLicensePrice(parseFloat(e.target.value) || 0)}
+                    className="w-36 rounded bg-gray-900 px-2 py-1 text-red-300 font-bold border border-red-700"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-xl bg-emerald-950/30 p-3.5 border border-emerald-900/60 text-xs text-emerald-200">
+                  🟢 Secure Mode Active: License price verified on backend database (₹1,20,000).
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-bold text-white shadow-lg transition"
+              >
+                Procure License Seat
               </button>
             </form>
+          </div>
 
-            <div className="flex items-center gap-2 font-mono text-xs text-gray-300">
-              <span>Tamper User Vault Access Level Parameter:</span>
-              <input
-                type="number"
-                value={vaultAccessLevel}
-                onChange={(e) => setVaultAccessLevel(parseInt(e.target.value, 10) || 1)}
-                className="w-20 rounded bg-gray-950 px-2 py-1 text-red-300 font-bold border border-gray-800"
-              />
-              <span className="text-[10px] text-gray-500">(Access Level 9 = Root Admin Privilege)</span>
-            </div>
-
-            {lfiOutput && (
-              <div className="rounded-xl bg-black p-4 text-xs font-mono text-emerald-300 border border-gray-800 overflow-x-auto">
-                <pre>{lfiOutput}</pre>
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 font-mono">License Receipt</h4>
+            {lastLicenseOrder ? (
+              <div className={`rounded-xl border p-4 font-mono text-xs space-y-2 ${
+                lastLicenseOrder.status === 'PRICE_TAMPERED'
+                  ? 'border-red-800 bg-red-950/40 text-red-200'
+                  : 'border-emerald-800 bg-emerald-950/40 text-emerald-200'
+              }`}>
+                <p className="font-bold text-white">Order ID: {lastLicenseOrder.orderId}</p>
+                <p>Software: {lastLicenseOrder.productName}</p>
+                <p>Submitted Price: ₹{lastLicenseOrder.unitPriceSubmitted}</p>
+                <p>Authoritative Price: ₹{lastLicenseOrder.unitPriceVerified.toLocaleString()}</p>
+                <div className="border-t border-gray-800 pt-2 font-bold flex justify-between">
+                  <span>Total Amount Billed:</span>
+                  <span>₹{lastLicenseOrder.totalPaid.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-32 flex-col items-center justify-center text-gray-500 text-xs">
+                <ShoppingCart className="h-6 w-6 mb-2 opacity-30" />
+                <p>No license procurement transactions submitted yet.</p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* STANDALONE TARGET APPLICATION WINDOW MODAL */}
+      {/* VIEW 5: LFI & COMMAND INJECTION */}
+      {activeTab === 'diagnostics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* LFI File Read */}
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+              <Server className="h-5 w-5 text-red-400" />
+              Firm Vault File Reader API (?file=... LFI Target)
+            </h3>
+            <form onSubmit={handleLfiRead} className="flex gap-2">
+              <input
+                type="text"
+                value={lfiPath}
+                onChange={(e) => setLfiPath(e.target.value)}
+                placeholder="e.g. ../../../../etc/passwd"
+                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
+              />
+              <button type="submit" className="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white">
+                Read File
+              </button>
+            </form>
+
+            {lfiOutput && (
+              <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300 border border-gray-800 overflow-x-auto">
+                <pre>{lfiOutput}</pre>
+              </div>
+            )}
+          </div>
+
+          {/* OS Command Injection */}
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+              <Terminal className="h-5 w-5 text-red-400" />
+              Server Ping Diagnostic Tool (RCE Target)
+            </h3>
+            <form onSubmit={handlePingExec} className="flex gap-2">
+              <input
+                type="text"
+                value={pingHost}
+                onChange={(e) => setPingHost(e.target.value)}
+                placeholder="e.g. 8.8.8.8; cat /etc/passwd"
+                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
+              />
+              <button type="submit" className="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white">
+                Run Ping
+              </button>
+            </form>
+
+            {pingOutput && (
+              <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300 border border-gray-800 overflow-x-auto">
+                <pre>{pingOutput}</pre>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* STANDALONE TARGET WINDOW MODAL */}
       {isStandaloneOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-lg">
-          <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-indigo-500 bg-gray-950 shadow-2xl overflow-hidden font-sans">
-            {/* Window Title Bar */}
-            <div className={`flex items-center justify-between bg-gradient-to-r ${activeUseCase.themeColor} px-6 py-3 text-white`}>
+          <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-red-500 bg-gray-950 shadow-2xl overflow-hidden font-sans">
+            <div className="flex items-center justify-between bg-gradient-to-r from-red-600 to-purple-700 px-6 py-3 text-white">
               <div className="flex items-center gap-3">
-                <Globe className="h-5 w-5" />
+                <FolderLock className="h-5 w-5" />
                 <div>
                   <h2 className="text-base font-bold flex items-center gap-2">
-                    {activeUseCase.projectTitle}
+                    ApexSoft Developer Credential Vault
                     <span className="rounded bg-black/40 px-2 py-0.5 text-xs text-white border border-white/20">
                       Standalone Target Sandbox
                     </span>
                   </h2>
-                  <p className="text-xs text-white/80">Student: {activeUseCase.studentName} ({activeUseCase.rollNo})</p>
+                  <p className="text-xs text-white/80">Real-time Firm Vault Target Application</p>
                 </div>
               </div>
 
@@ -566,87 +842,30 @@ export const FullAppModule: React.FC = () => {
               </button>
             </div>
 
-            {/* Standalone Window Address Bar */}
             <div className="flex items-center gap-2 bg-gray-900 px-4 py-2 border-b border-gray-800 text-xs font-mono text-gray-300">
-              <span className="text-gray-500">https://{selectedUseCaseId}.target-lab.org/app</span>
+              <span className="text-gray-500">https://vault.apexsoft-firm.org/app</span>
               <span className="ml-auto rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-400 font-bold border border-emerald-800">
-                ACTIVE LAB SANDBOX
+                ACTIVE LAB TARGET
               </span>
             </div>
 
-            {/* Dedicated Sandbox View Content */}
             <div className="flex-1 overflow-y-auto p-6 bg-[#0b0f19] space-y-6">
-              <div className="rounded-xl bg-gray-900/80 p-4 border border-gray-800 text-xs space-y-2">
-                <span className="font-bold text-indigo-400 uppercase tracking-wider block">Use-Case Description & Evaluation Target:</span>
-                <p className="text-gray-300 leading-relaxed">{activeUseCase.description}</p>
-              </div>
-
-              {/* Render current active target UI */}
-              {selectedUseCaseId === 'airline' && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-white">Smart Airline Booking Portal Live Target</h4>
-                  <form onSubmit={handleAirlineFlightSearch} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={airlineFlightSearch}
-                      onChange={(e) => setAirlineFlightSearch(e.target.value)}
-                      className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                    />
-                    <button type="submit" className="rounded-xl bg-cyan-600 px-4 py-2 text-xs font-bold text-white">
-                      Search Flights
-                    </button>
-                  </form>
-                  <div className="rounded-xl bg-black p-3 text-xs font-mono text-cyan-300">
-                    {airlineFlightResults.map((r, i) => <p key={i}>{r}</p>)}
-                  </div>
-                </div>
-              )}
-
-              {selectedUseCaseId === 'securebank' && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-white">SecureBank Core Banking Live Target</h4>
-                  <form onSubmit={handleBankIdorLookup} className="flex gap-2">
-                    <input
-                      type="number"
-                      value={bankAccountQuery}
-                      onChange={(e) => setBankAccountQuery(parseInt(e.target.value, 10) || 999)}
-                      className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                    />
-                    <button type="submit" className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white">
-                      Fetch Slip
-                    </button>
-                  </form>
-                  {bankAccountResult && <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300">{bankAccountResult}</div>}
-                </div>
-              )}
-
-              {selectedUseCaseId === 'saas' && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-white">SaaS Subscription Portal Live Target</h4>
-                  <input
-                    type="text"
-                    value={saasPlanSearch}
-                    onChange={(e) => setSaasPlanSearch(e.target.value)}
-                    className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                  />
-                </div>
-              )}
-
-              {selectedUseCaseId === 'cloudvault' && (
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold text-white">Cloud Vault LFI Live Target</h4>
-                  <form onSubmit={handleLfiExecute} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={lfiFilePath}
-                      onChange={(e) => setLfiFilePath(e.target.value)}
-                      className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                    />
-                    <button type="submit" className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white">
-                      Read LFI File
-                    </button>
-                  </form>
-                  {lfiOutput && <pre className="rounded-xl bg-black p-4 text-xs font-mono text-emerald-300">{lfiOutput}</pre>}
+              <h3 className="text-sm font-bold text-white">Software Firm Secrets Vault Sandbox View</h3>
+              <form onSubmit={(e) => { e.preventDefault(); handleSecretLookup(secretQueryId); }} className="flex gap-2">
+                <input
+                  type="number"
+                  value={secretQueryId}
+                  onChange={(e) => setSecretQueryId(parseInt(e.target.value, 10) || 101)}
+                  className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
+                />
+                <button type="submit" className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white">
+                  Fetch Secret
+                </button>
+              </form>
+              {displayedSecret && (
+                <div className="rounded-xl bg-black p-4 text-xs font-mono text-amber-300 border border-gray-800">
+                  <p>Secret ID #{displayedSecret.id}: {displayedSecret.title}</p>
+                  <p>Value: {displayedSecret.secretKey}</p>
                 </div>
               )}
             </div>

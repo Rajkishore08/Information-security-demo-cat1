@@ -1,41 +1,75 @@
-import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, EnterpriseEmployee, EnterpriseAnnouncement, ProjectUseCase } from '../types/security';
+import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, FirmSecret, FirmNote, SoftwareLicense } from '../types/security';
 
-export const PROJECT_USE_CASES: ProjectUseCase[] = [
+export const INITIAL_FIRM_SECRETS: FirmSecret[] = [
   {
-    id: 'airline',
-    projectTitle: 'Smart Airline Booking & Security Portal',
-    studentName: 'Aakash B',
-    rollNo: '7176 22 31 001',
-    conceptsUsed: ['SQL Injection', 'Parameter Tampering', 'Phishing Simulator', 'IDN Homograph Attack', 'XSS'],
-    themeColor: 'from-blue-600 to-cyan-600',
-    description: 'Real-time airline reservation platform featuring flight search SQLi, ticket price tampering (₹18,000 → ₹100), IDN Cyrillic domain spoofing (skуwings.com), and passenger review XSS.'
+    id: 101,
+    title: 'Stripe Payment Gateway API Key (Production)',
+    category: 'API Credentials',
+    secretKey: 'sk_live_51M099xXXXXXX_secret_prod_key_991823',
+    environment: 'Production',
+    accessRole: 'Developer',
+    isConfidential: false
   },
   {
-    id: 'securebank',
-    projectTitle: 'SecureBank Core Banking Portal',
-    studentName: 'Anugraha VS',
-    rollNo: '7176 22 31 003',
-    conceptsUsed: ['SQL Injection', 'Parameter Tampering', 'URL Interpretation (IDOR)', 'Timing Attack', 'Brute Force (Password Guessing)'],
-    themeColor: 'from-emerald-600 to-teal-700',
-    description: 'High-security financial institution simulating login auth bypass, account slip IDOR (?account_id=999), password brute force, and response timing attack analysis.'
+    id: 102,
+    title: 'PostgreSQL Core Database Master Password',
+    category: 'Database Credentials',
+    secretKey: 'pg_db_master_P@ssw0rd_2026_super_secure',
+    environment: 'Production',
+    accessRole: 'DevOps',
+    isConfidential: false
   },
   {
-    id: 'saas',
-    projectTitle: 'SaaS Subscription Portal',
-    studentName: 'Avanthika PG',
-    rollNo: '7176 22 31 008',
-    conceptsUsed: ['SQL Injection', 'Password Guessing', 'XSS', 'Parameter Tampering', 'Phishing Simulator'],
-    themeColor: 'from-purple-600 to-indigo-700',
-    description: 'Multi-tenant cloud subscription platform featuring plan lookup SQLi, tenant admin password guessing, support desk XSS, and ₹0 enterprise plan tampering.'
+    id: 103,
+    title: 'AWS Root IAM Access Key ID & Secret',
+    category: 'Cloud Credentials',
+    secretKey: 'AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    environment: 'Production',
+    accessRole: 'DevOps',
+    isConfidential: false
   },
   {
-    id: 'cloudvault',
-    projectTitle: 'Cloud Vault Application',
-    studentName: 'Student Project 010',
-    rollNo: '7176 22 31 010',
-    conceptsUsed: ['SQL Injection', 'Cross-Site Scripting', 'Parameter Tampering', 'Local File Inclusion (LFI)', 'Password Guessing Attack'],
-    themeColor: 'from-red-600 to-orange-700',
-    description: 'Cloud document & storage vault featuring directory search SQLi, file note XSS, access level tampering (access_level=9), and Local File Inclusion (?file=../../../../etc/passwd).'
+    id: 999,
+    title: 'RESTRICTED: Root Software Firm Master Key & Hardware HSM Vault Token',
+    category: 'Root Master Keys',
+    secretKey: 'HSM_MASTER_KEY_0x99182377_CTO_PRIVATE_SIGNING_KEY',
+    environment: 'Core Firm Vault',
+    accessRole: 'CTO Admin',
+    isConfidential: true
+  }
+];
+
+export const INITIAL_FIRM_NOTES: FirmNote[] = [
+  {
+    id: 'note-1',
+    author: 'Lead Architect',
+    topic: 'Database Migration Security',
+    content: 'All API keys must be rotated prior to the upcoming audit on Friday.',
+    createdAt: '2026-08-10 11:30'
+  },
+  {
+    id: 'note-2',
+    author: 'DevOps Engineer',
+    topic: 'Kubernetes Cluster Access',
+    content: 'Kubeconfig updated for Staging environment cluster node 04.',
+    createdAt: '2026-08-11 08:15'
+  }
+];
+
+export const SOFTWARE_LICENSES: SoftwareLicense[] = [
+  {
+    id: 1,
+    softwareName: 'ApexSoft Enterprise IDE License (1-Year)',
+    licenseTier: 'Developer Seat',
+    tierPrice: 15000,
+    allowedSeats: 10
+  },
+  {
+    id: 2,
+    softwareName: 'ApexSoft Security Audit & SAST Suite',
+    licenseTier: 'Enterprise Suite',
+    tierPrice: 120000,
+    allowedSeats: 50
   }
 ];
 
@@ -165,18 +199,6 @@ export const DICTIONARY_PASSWORDS: string[] = [
   'superman',
   'monkey',
   'Secr3tP@ss'
-];
-
-export const MOCK_ENTERPRISE_EMPLOYEES: EnterpriseEmployee[] = [
-  { empId: 101, name: 'John Doe', department: 'IT Support', salary: 45000, performanceReview: 'Meets expectations', isConfidential: false },
-  { empId: 102, name: 'Alice Smith', department: 'Engineering', salary: 85000, performanceReview: 'Exceeds expectations', isConfidential: false },
-  { empId: 103, name: 'Robert Chen', department: 'Cybersecurity', salary: 110000, performanceReview: 'Outstanding leader', isConfidential: false },
-  { empId: 999, name: 'CONFIDENTIAL: CEO Strategic Compensation & Payroll', department: 'Executive Board', salary: 4500000, performanceReview: 'Restricted CEO Stock Options & Bonus Package', isConfidential: true }
-];
-
-export const INITIAL_ENTERPRISE_ANNOUNCEMENTS: EnterpriseAnnouncement[] = [
-  { id: 'ann-1', author: 'IT Helpdesk', title: 'System Maintenance Notice', content: 'Scheduled server maintenance on Saturday 02:00 UTC.', createdAt: '2026-08-10 10:00' },
-  { id: 'ann-2', author: 'HR Dept', title: 'Annual Health Workshop', content: 'Join the wellness webinar this Friday at 3 PM.', createdAt: '2026-08-11 08:30' }
 ];
 
 export const CODE_COMPARISONS: Record<string, CodeComparison> = {
