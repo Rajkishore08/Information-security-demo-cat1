@@ -1,7 +1,7 @@
-# 🛒 UrbanCart – Security Vulnerability Demonstration Web Application
+# 🛒 CyberMart – Security Vulnerability Demonstration Web Application
 > **Information Security Lab (CAT 1) Project & College Viva Presentation Suite**
 
-UrbanCart is an interactive web-based e-commerce security laboratory application designed to simulate a real-world online shopping platform while intentionally incorporating web application security vulnerabilities.
+CyberMart is an interactive web-based e-commerce security laboratory application designed to simulate a real-world online shopping platform while intentionally incorporating web application security vulnerabilities.
 
 Designed for college laboratory evaluations, viva examinations, and cybersecurity demonstrations.
 
@@ -9,7 +9,7 @@ Designed for college laboratory evaluations, viva examinations, and cybersecurit
 
 ## 🌟 Architecture & Core Objectives
 
-UrbanCart provides two security modes for every vulnerability:
+CyberMart provides two security modes for every vulnerability:
 - **Vulnerable Mode 🔴**: Intentionally contains insecure implementation logic (dynamic SQL queries, unvalidated client prices, missing rate limits, unverified IDN homographs).
 - **Patched Mode 🟢**: Implements industry-standard security controls (parameterized prepared statements, server-side SQLite DB validation, 3-attempt account lockouts, Punycode mixed-script warnings).
 
@@ -19,12 +19,12 @@ A central **Security Center Dashboard** allows administrators and lab evaluators
 
 ## 🚀 Scope of Security Concepts & Vulnerabilities Demonstrated
 
-| # | Security Concept | Vulnerable Implementation | Patched Security Control | UrbanCart Module |
+| # | Security Concept | Vulnerable Implementation | Patched Security Control | CyberMart Module |
 |---|---|---|---|---|
 | **1** | **SQL Injection (SQLi)** | Dynamic query string concatenation (`SELECT * FROM users WHERE username='$user'`) | Parameterized Queries (Prepared Statements `$stmt->bind_param()`) | Auth Gateway & Search (`/login`) |
 | **2** | **Brute Force & Rate Limiting** | Unlimited authentication attempts | Rate limiting & 30-second Account Lockout after 3 failed tries | Auth Gateway (`/login`) |
 | **3** | **Parameter Tampering** | Trusting client-supplied price input (Tampering ₹3,499 → ₹1) | Server-side validation against authoritative SQLite `lab.db` | Shop Store & Checkout (`/checkout`) |
-| **4** | **IDN Homograph Phishing** | No suspicious-domain warning on spoofed Cyrillic link | Mixed-script Cyrillic domain detection & Punycode warning (`xn--urbancrt-8ya.com`) | User Inbox (`/inbox`) |
+| **4** | **IDN Homograph Phishing** | No suspicious-domain warning on spoofed Cyrillic link | Mixed-script Cyrillic domain detection & Punycode warning (`xn--cybmart-9ya.com`) | User Inbox (`/inbox`) |
 | **5** | **Stored Cross-Site Scripting (XSS)** | Unescaped DOM echo (`<?php echo $_POST['comment']; ?>`) | Context-aware HTML Entity Encoding (`htmlspecialchars()`) | Customer Reviews (`/reviews`) |
 | **6** | **LFI & Command Injection** | Unsafe `include()` path traversal & `shell_exec()` | `basename()` whitelist & `FILTER_VALIDATE_IP` escaping | Diagnostics (`/diagnostics`) |
 
@@ -77,7 +77,7 @@ A central **Security Center Dashboard** allows administrators and lab evaluators
 ### Step 1: Demonstrate SQL Injection (Vulnerability 1)
 1. Navigate to **Login & Brute-Force**.
 2. Under **Vulnerable Mode 🔴**, click preset `' OR '1'='1`. Submit authentication.
-3. Observe successful authentication bypass logging in as UrbanCart System Administrator.
+3. Observe successful authentication bypass logging in as CyberMart System Administrator.
 4. Toggle to **Patched Mode 🟢** and repeat test. Observe that prepared statement parameter binding treats `' OR '1'='1` strictly as literal string data.
 
 ### Step 2: Demonstrate Brute Force Protection (Vulnerability 2)
@@ -91,8 +91,8 @@ A central **Security Center Dashboard** allows administrators and lab evaluators
 
 ### Step 4: Demonstrate IDN Homograph Phishing (Vulnerability 4)
 1. Navigate to **Inbox & IDN Phishing**. Open the simulated security email.
-2. In **Patched Mode 🟢**, click the suspicious link (`urbancаrt.com` with Cyrillic 'а').
-3. Observe the **⚠ SECURITY WARNING** banner identifying mixed scripts and displaying ASCII Punycode (`xn--urbancrt-8ya.com`).
+2. In **Patched Mode 🟢**, click the suspicious link (`cybеrmart.com` with Cyrillic 'е').
+3. Observe the **⚠ SECURITY WARNING** banner identifying mixed scripts and displaying ASCII Punycode (`xn--cybmart-9ya.com`).
 
 ### Step 5: Open Central Security Center
 1. Navigate to **Security Center & Event Log**.

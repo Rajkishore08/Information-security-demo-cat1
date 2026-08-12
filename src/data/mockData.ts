@@ -1,6 +1,6 @@
 import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, FirmSecret, FirmNote, SoftwareLicense, SecurityEvent } from '../types/security';
 
-export const URBANCART_PRODUCTS: Product[] = [
+export const CYBERMART_PRODUCTS: Product[] = [
   {
     id: 1,
     name: 'Smartphone Pro Max (128GB)',
@@ -80,7 +80,7 @@ export const INITIAL_SECURITY_EVENTS: SecurityEvent[] = [
     timestamp: '2026-08-12 09:38:20',
     eventType: 'IDN Phishing Warning',
     status: 'PATCHED',
-    details: 'Suspicious mixed-script Cyrillic domain detected: urbancаrt.com (Punycode: xn--urbancrt-8ya.com)'
+    details: 'Suspicious mixed-script Cyrillic domain detected: cybеrmart.com (Punycode: xn--cybmart-9ya.com)'
   }
 ];
 

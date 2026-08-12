@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSecurity } from '../../context/SecurityContext';
-import { URBANCART_PRODUCTS, INITIAL_SECURITY_EVENTS } from '../../data/mockData';
+import { CYBERMART_PRODUCTS, INITIAL_SECURITY_EVENTS } from '../../data/mockData';
 import type { Product, Order, SecurityEvent } from '../../types/security';
 import { 
   ShoppingCart, 
@@ -39,7 +39,7 @@ export const FullAppModule: React.FC = () => {
   // Security Events Table State
   const [events, setEvents] = useState<SecurityEvent[]>(INITIAL_SECURITY_EVENTS);
 
-  // Helper to log UrbanCart security event
+  // Helper to log CyberMart security event
   const recordSecurityEvent = (eventType: SecurityEvent['eventType'], isPatched: boolean, details: string) => {
     const newEvt: SecurityEvent = {
       id: `evt-${Date.now().toString().slice(-4)}`,
@@ -52,7 +52,7 @@ export const FullAppModule: React.FC = () => {
 
     addLog(
       isPatched ? 'secure' : 'exploit',
-      `URBANCART [${eventType}]`,
+      `CYBERMART [${eventType}]`,
       `[${isPatched ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}] ${details}`,
       undefined,
       { eventType, status: isPatched ? 'PATCHED' : 'VULNERABLE' }
@@ -94,7 +94,7 @@ export const FullAppModule: React.FC = () => {
   const securityScore = Math.round((patchedCount / totalControls) * 100);
 
   // --- MODULE 1: SHOP STORE & CHECKOUT (Parameter Tampering) ---
-  const [selectedProduct, setSelectedProduct] = useState<Product>(URBANCART_PRODUCTS[0]); // Smartphone ₹3,499
+  const [selectedProduct, setSelectedProduct] = useState<Product>(CYBERMART_PRODUCTS[0]); // Smartphone ₹3,499
   const [clientSubmittedPrice, setClientSubmittedPrice] = useState<number>(1); // Modified to ₹1
   const [checkoutQuantity, setCheckoutQuantity] = useState<number>(1);
   const [lastCheckoutOrder, setLastCheckoutOrder] = useState<Order | null>(null);
@@ -107,7 +107,7 @@ export const FullAppModule: React.FC = () => {
     const totalCharged = finalUnitCharged * checkoutQuantity;
 
     const order: Order = {
-      orderId: `UC-${Date.now().toString().slice(-6)}`,
+      orderId: `CM-${Date.now().toString().slice(-6)}`,
       productName: selectedProduct.name,
       quantity: checkoutQuantity,
       unitPriceSubmitted: clientSubmittedPrice,
@@ -164,7 +164,7 @@ export const FullAppModule: React.FC = () => {
     if (!isSqliPatched && isSqliPayload) {
       setAuthStatusMessage({
         type: 'success',
-        msg: '⚡ AUTHENTICATION SUCCESSFUL: Dynamic SQL query evaluated to TRUE! Logged in as UrbanCart System Administrator.'
+        msg: '⚡ AUTHENTICATION SUCCESSFUL: Dynamic SQL query evaluated to TRUE! Logged in as CyberMart System Administrator.'
       });
       recordSecurityEvent('SQL Injection Bypass', false, `SQL Injection Bypass triggered on /login endpoint: username="${loginUsername}"`);
       return;
@@ -210,8 +210,8 @@ export const FullAppModule: React.FC = () => {
   };
 
   // --- MODULE 3: INBOX & IDN HOMOGRAPH PHISHING ---
-  const [phishingDomain] = useState<string>('http://urbancаrt.com/verify?account_id=9918'); // Cyrillic 'а'
-  const [punycodeDomain] = useState<string>('http://xn--urbancrt-8ya.com/verify?account_id=9918');
+  const [phishingDomain] = useState<string>('http://cybеrmart.com/verify?account_id=9918'); // Cyrillic 'е'
+  const [punycodeDomain] = useState<string>('http://xn--cybmart-9ya.com/verify?account_id=9918');
   const [showPhishingWarning, setShowPhishingWarning] = useState<boolean>(false);
 
   const handlePhishingLinkClick = (e: React.MouseEvent) => {
@@ -241,7 +241,7 @@ export const FullAppModule: React.FC = () => {
     { id: '1', author: 'Rahul M.', text: 'Fast delivery on Smartphone Pro Max! Highly recommended.' },
     { id: '2', author: 'Ananya S.', text: 'Headphones noise cancellation works perfectly for video calls.' }
   ]);
-  const [newReviewText, setNewReviewText] = useState<string>('<script>alert("Stored XSS Executed! Cookie: " + document.cookie)</script>');
+  const [newReviewText, setNewReviewText] = useState<string>('<script>alert("CyberMart XSS Executed!")</script>');
   const [xssTriggerAlert, setXssTriggerAlert] = useState<string | null>(null);
 
   const handleReviewSubmit = (e: React.FormEvent) => {
@@ -276,11 +276,11 @@ export const FullAppModule: React.FC = () => {
 
     if (!isPatched) {
       if (lfiFile.includes('..')) {
-        const out = `root:x:0:0:root:/root:/bin/bash\nurbancart_db_user:x:1001:1001:UrbanCart DB Master Account,,,:/var/www/urbancart:/bin/bash\nsqlite3_lab:x:1002:1002:Lab Database Account,,,:/home/lab:/bin/bash`;
+        const out = `root:x:0:0:root:/root:/bin/bash\ncybermart_db_user:x:1001:1001:CyberMart DB Master Account,,,:/var/www/cybermart:/bin/bash\nsqlite3_lab:x:1002:1002:Lab Database Account,,,:/home/lab:/bin/bash`;
         setLfiOutput(out);
         recordSecurityEvent('LFI Path Traversal', false, `Unsafe include() executed reading /etc/passwd: ${lfiFile}`);
       } else {
-        setLfiOutput(`[File Content of ${lfiFile}]: UrbanCart log output.`);
+        setLfiOutput(`[File Content of ${lfiFile}]: CyberMart log output.`);
       }
     } else {
       if (lfiFile.includes('..')) {
@@ -317,7 +317,7 @@ export const FullAppModule: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans text-gray-100">
-      {/* URBANCART BRAND HEADER & SECURITY SCORECARD */}
+      {/* CYBERMART BRAND HEADER & SECURITY SCORECARD */}
       <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4 sm:p-6 shadow-2xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
           <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export const FullAppModule: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                URBANCART E-Commerce Security Laboratory
+                CYBERMART E-Commerce Security Laboratory
                 <span className="rounded bg-indigo-950 px-2 py-0.5 text-xs text-indigo-400 border border-indigo-800 font-mono font-bold">
                   lab.db SQLite Backend
                 </span>
@@ -382,7 +382,7 @@ export const FullAppModule: React.FC = () => {
           >
             <div className="flex items-center gap-2 text-indigo-200 font-bold text-xs">
               <SlidersHorizontal className="h-4 w-4 text-indigo-400" />
-              <span>⚡ Quick Attack Payload Presets (UrbanCart Security Lab)</span>
+              <span>⚡ Quick Attack Payload Presets (CyberMart Security Lab)</span>
             </div>
             <span className="text-xs text-indigo-300">{isTestBenchOpen ? 'Hide Presets' : 'Show Presets'}</span>
           </button>
@@ -440,7 +440,7 @@ export const FullAppModule: React.FC = () => {
                 </span>
                 <button
                   onClick={() => {
-                    setNewReviewText('<script>alert("UrbanCart XSS Executed!")</script>');
+                    setNewReviewText('<script>alert("CyberMart XSS Executed!")</script>');
                     setActiveTab('reviews');
                   }}
                   className="w-full rounded bg-purple-950 hover:bg-purple-900 py-1 text-[11px] text-purple-200 border border-purple-800 transition"
@@ -522,11 +522,11 @@ export const FullAppModule: React.FC = () => {
           <div className="lg:col-span-7 space-y-4">
             <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-indigo-400" />
-              UrbanCart Product Catalog
+              CyberMart Product Catalog
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {URBANCART_PRODUCTS.map((prod) => (
+              {CYBERMART_PRODUCTS.map((prod) => (
                 <div
                   key={prod.id}
                   onClick={() => {
@@ -632,7 +632,7 @@ export const FullAppModule: React.FC = () => {
             <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
               <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
                 <Lock className="h-5 w-5 text-blue-400" />
-                UrbanCart Authentication Gateway
+                CyberMart Authentication Gateway
               </h3>
               <div className="flex gap-1">
                 <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.sqli ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
@@ -724,7 +724,7 @@ export const FullAppModule: React.FC = () => {
             <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
               <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
                 <Mail className="h-5 w-5 text-amber-400" />
-                UrbanCart User Inbox (Simulated Phishing Mail)
+                CyberMart User Inbox (Simulated Phishing Mail)
               </h3>
               <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.idn_homograph ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
                 IDN Detection: {controls.idn_homograph ? 'PATCHED' : 'VULNERABLE'}
@@ -734,15 +734,15 @@ export const FullAppModule: React.FC = () => {
             <div className="rounded-xl border border-amber-800/80 bg-black p-4 space-y-3 font-sans">
               <div className="flex justify-between text-xs text-gray-400 border-b border-gray-800 pb-2">
                 <div>
-                  <p className="font-bold text-white">From: Security Team &lt;security@urbancаrt.com&gt;</p>
-                  <p>Subject: URGENT: Verify your UrbanCart Account Credentials</p>
+                  <p className="font-bold text-white">From: Security Team &lt;security@cybеrmart.com&gt;</p>
+                  <p>Subject: URGENT: Verify your CyberMart Account Credentials</p>
                 </div>
                 <span className="text-[10px]">Today, 10:14 AM</span>
               </div>
 
               <div className="text-xs text-gray-300 space-y-2">
                 <p>Dear Customer,</p>
-                <p>We detected unusual activity on your UrbanCart account. Please verify your credentials immediately to avoid account suspension.</p>
+                <p>We detected unusual activity on your CyberMart account. Please verify your credentials immediately to avoid account suspension.</p>
               </div>
 
               <div className="pt-2">
@@ -761,7 +761,7 @@ export const FullAppModule: React.FC = () => {
                   <AlertTriangle className="h-5 w-5 text-red-400" />
                   <span>⚠ SECURITY WARNING: SUSPICIOUS IDN HOMOGRAPH DOMAIN DETECTED!</span>
                 </div>
-                <p>The requested domain contains suspicious internationalized Cyrillic characters visually mimicking genuine UrbanCart domain.</p>
+                <p>The requested domain contains suspicious internationalized Cyrillic characters visually mimicking genuine CyberMart domain.</p>
                 <div className="rounded bg-black p-2 text-[11px] text-amber-300">
                   <p>Requested URL: <strong>{phishingDomain}</strong></p>
                   <p>ASCII Punycode Representation: <strong>{punycodeDomain}</strong></p>
@@ -775,10 +775,10 @@ export const FullAppModule: React.FC = () => {
             <div className="space-y-3 text-xs font-mono text-gray-300">
               <div className="rounded-xl bg-black p-4 border border-gray-800 space-y-2">
                 <span className="font-bold text-amber-400 block">Homograph Character Analysis:</span>
-                <p>Legitimate Domain: <code className="text-emerald-400 font-bold">urbancart.com</code> (Latin 'a')</p>
-                <p>Spoofed Domain: <code className="text-red-400 font-bold">urbancаrt.com</code> (Cyrillic 'а' U+0430)</p>
+                <p>Legitimate Domain: <code className="text-emerald-400 font-bold">cybermart.com</code> (Latin 'e')</p>
+                <p>Spoofed Domain: <code className="text-red-400 font-bold">cybеrmart.com</code> (Cyrillic 'е' U+0435)</p>
                 <p className="text-[11px] text-gray-400 mt-2">
-                  In Patched Mode, script detection checks mixed character sets and displays Punycode representations (`xn--urbancrt-8ya.com`) to alert users before credential entry.
+                  In Patched Mode, script detection checks mixed character sets and displays Punycode representations (`xn--cybmart-9ya.com`) to alert users before credential entry.
                 </p>
               </div>
             </div>
@@ -829,7 +829,7 @@ export const FullAppModule: React.FC = () => {
             )}
 
             <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-3">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">UrbanCart Product Reviews Feed</h4>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">CyberMart Product Reviews Feed</h4>
               <div className="space-y-3 max-h-[400px] overflow-y-auto">
                 {reviewsList.map((r) => (
                   <div key={r.id} className="rounded-xl border border-gray-800 bg-black p-4 space-y-1">
@@ -853,7 +853,7 @@ export const FullAppModule: React.FC = () => {
           <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Activity className="h-5 w-5 text-emerald-400" />
-              UrbanCart Central Security Center Admin Dashboard
+              CyberMart Central Security Center Admin Dashboard
             </h3>
 
             {/* Controls Matrix Grid */}
@@ -1038,7 +1038,7 @@ export const FullAppModule: React.FC = () => {
                 <ShoppingCart className="h-5 w-5" />
                 <div>
                   <h2 className="text-base font-bold flex items-center gap-2">
-                    URBANCART E-Commerce Security Demonstration Application
+                    CYBERMART E-Commerce Security Demonstration Application
                     <span className="rounded bg-black/40 px-2 py-0.5 text-xs text-white border border-white/20">
                       Standalone Window Sandbox
                     </span>
@@ -1056,16 +1056,16 @@ export const FullAppModule: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 bg-gray-900 px-4 py-2 border-b border-gray-800 text-xs font-mono text-gray-300">
-              <span className="text-gray-500">http://localhost:5173/urbancart</span>
+              <span className="text-gray-500">http://localhost:5173/cybermart</span>
               <span className="ml-auto rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-400 font-bold border border-emerald-800">
                 ACTIVE LAB SANDBOX
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 bg-[#0b0f19] space-y-6">
-              <h3 className="text-sm font-bold text-white">UrbanCart Real-Time Target Application View</h3>
+              <h3 className="text-sm font-bold text-white">CyberMart Real-Time Target Application View</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {URBANCART_PRODUCTS.map((p) => (
+                {CYBERMART_PRODUCTS.map((p) => (
                   <div key={p.id} className="rounded-xl border border-gray-800 bg-gray-900 p-4 space-y-2">
                     <h4 className="font-bold text-white text-xs">{p.name}</h4>
                     <p className="text-[11px] text-gray-400">{p.description}</p>
