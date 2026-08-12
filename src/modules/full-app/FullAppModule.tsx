@@ -20,10 +20,19 @@ import {
   Terminal
 } from 'lucide-react';
 
-export const FullAppModule: React.FC = () => {
+interface CyberMartCoreProps {
+  isStandalone?: boolean;
+  onOpenStandalone?: () => void;
+  onCloseStandalone?: () => void;
+}
+
+export const CyberMartCore: React.FC<CyberMartCoreProps> = ({ 
+  isStandalone = false, 
+  onOpenStandalone, 
+  onCloseStandalone 
+}) => {
   const { mode, setMode, addLog, addOrder } = useSecurity();
   const [activeTab, setActiveTab] = useState<'shop' | 'login' | 'inbox' | 'reviews' | 'admin' | 'diagnostics'>('shop');
-  const [isStandaloneOpen, setIsStandaloneOpen] = useState<boolean>(false);
   const [isTestBenchOpen, setIsTestBenchOpen] = useState<boolean>(true);
 
   // Security Controls State (Independent Toggles)
@@ -330,6 +339,11 @@ export const FullAppModule: React.FC = () => {
                 <span className="rounded bg-indigo-950 px-2 py-0.5 text-xs text-indigo-400 border border-indigo-800 font-mono font-bold">
                   lab.db SQLite Backend
                 </span>
+                {isStandalone && (
+                  <span className="rounded bg-emerald-950 px-2 py-0.5 text-xs text-emerald-400 border border-emerald-800 font-mono font-bold">
+                    Standalone Sandbox Active
+                  </span>
+                )}
               </h2>
               <p className="text-xs text-gray-400">Interactive Security Vulnerability Demonstration & Defense Platform</p>
             </div>
@@ -364,13 +378,24 @@ export const FullAppModule: React.FC = () => {
               </button>
             </div>
 
-            <button
-              onClick={() => setIsStandaloneOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-bold text-white shadow-lg transition"
-            >
-              <Maximize2 className="h-4 w-4" />
-              <span>Standalone Window ↗️</span>
-            </button>
+            {!isStandalone && onOpenStandalone && (
+              <button
+                onClick={onOpenStandalone}
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-bold text-white shadow-lg transition"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span>Standalone Window ↗️</span>
+              </button>
+            )}
+
+            {isStandalone && onCloseStandalone && (
+              <button
+                onClick={onCloseStandalone}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1028,51 +1053,59 @@ export const FullAppModule: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
 
-      {/* STANDALONE WINDOW SANDBOX MODAL */}
+export const FullAppModule: React.FC = () => {
+  const [isStandaloneOpen, setIsStandaloneOpen] = useState<boolean>(false);
+
+  return (
+    <div className="space-y-6">
+      {/* NORMAL IN-PAGE APPLICATION VIEW */}
+      <CyberMartCore onOpenStandalone={() => setIsStandaloneOpen(true)} />
+
+      {/* STANDALONE WINDOW SANDBOX MODAL VIEW */}
       {isStandaloneOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-lg font-sans">
-          <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-indigo-500 bg-gray-950 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl font-sans">
+          <div className="flex h-[95vh] w-full max-w-7xl flex-col rounded-2xl border border-indigo-500 bg-gray-950 shadow-2xl overflow-hidden ring-1 ring-indigo-500/50">
+            {/* Standalone Window Browser Address Bar */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-950 via-gray-900 to-purple-950 px-6 py-3 border-b border-indigo-900/60 text-white">
               <div className="flex items-center gap-3">
-                <ShoppingCart className="h-5 w-5" />
-                <div>
-                  <h2 className="text-base font-bold flex items-center gap-2">
-                    CYBERMART E-Commerce Security Demonstration Application
-                    <span className="rounded bg-black/40 px-2 py-0.5 text-xs text-white border border-white/20">
-                      Standalone Window Sandbox
-                    </span>
-                  </h2>
-                  <p className="text-xs text-white/80">Real-time Lab Environment (lab.db SQLite Backend)</p>
+                <div className="flex gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-red-500/80 inline-block cursor-pointer" onClick={() => setIsStandaloneOpen(false)}></span>
+                  <span className="h-3 w-3 rounded-full bg-amber-500/80 inline-block"></span>
+                  <span className="h-3 w-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-xl bg-black/60 px-4 py-1.5 text-xs font-mono text-gray-300 border border-gray-800 min-w-[320px]">
+                  <Lock className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-gray-400">http://localhost:5173</span>
+                  <span className="text-indigo-300 font-bold">/cybermart/sandbox</span>
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsStandaloneOpen(false)}
-                className="rounded-lg p-1.5 text-white/80 hover:bg-black/40 hover:text-white transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-emerald-950 px-2.5 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-800 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  STANDALONE LAB ACTIVE
+                </span>
 
-            <div className="flex items-center gap-2 bg-gray-900 px-4 py-2 border-b border-gray-800 text-xs font-mono text-gray-300">
-              <span className="text-gray-500">http://localhost:5173/cybermart</span>
-              <span className="ml-auto rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-400 font-bold border border-emerald-800">
-                ACTIVE LAB SANDBOX
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 bg-[#0b0f19] space-y-6">
-              <h3 className="text-sm font-bold text-white">CyberMart Real-Time Target Application View</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {CYBERMART_PRODUCTS.map((p) => (
-                  <div key={p.id} className="rounded-xl border border-gray-800 bg-gray-900 p-4 space-y-2">
-                    <h4 className="font-bold text-white text-xs">{p.name}</h4>
-                    <p className="text-[11px] text-gray-400">{p.description}</p>
-                    <p className="text-xs font-mono text-emerald-400 font-bold">Price: ₹{p.price.toLocaleString()}</p>
-                  </div>
-                ))}
+                <button
+                  onClick={() => setIsStandaloneOpen(false)}
+                  className="rounded-xl p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
+            </div>
+
+            {/* Standalone Window Body - Renders Full CyberMart Application Core */}
+            <div className="flex-1 overflow-y-auto p-6 bg-[#090d16]">
+              <CyberMartCore 
+                isStandalone={true} 
+                onCloseStandalone={() => setIsStandaloneOpen(false)} 
+              />
             </div>
           </div>
         </div>
