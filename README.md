@@ -13,19 +13,25 @@ CyberMart features a dual-mode security execution engine:
 - **Vulnerable Mode 🔴**: Demonstrates flawed coding practices such as dynamic SQL string concatenation, unvalidated client-side prices, unlimited login attempts, unescaped DOM rendering, and unverified internationalized domain names.
 - **Patched Mode 🟢**: Implements industry-standard security controls including parameterized prepared statements, server-side SQLite database price validation, 3-attempt account lockout cooldowns, context-aware `htmlspecialchars()` entity encoding, and Punycode homograph domain detection.
 
-A centralized **Security Center Dashboard** allows administrators and laboratory examiners to dynamically toggle security controls, monitor live timestamped event logs in an `events` audit table, inspect side-by-side PHP/MySQL code diffs, and track a real-time **Security Scorecard (0% to 100%)**.
+A centralized **Security Center Dashboard** (`/admin`) allows administrators and laboratory examiners to dynamically toggle security controls, monitor live timestamped event logs in an `events` audit table, inspect side-by-side PHP/MySQL code diffs, and track a real-time **Security Scorecard (0% to 100%)**.
+
+---
+
+## 📚 FULL ACADEMIC DOCUMENTATION
+
+For full, detailed technical specifications, system architecture diagrams, database schemas, algorithms, and viva walkthrough guides, please refer to the comprehensive academic documentation file:
+
+👉 **[PROJECT_DOCUMENTATION.md](file:///Users/rajkishores/Sem%209/Information%20Security%20Lab/CAT%201/PROJECT_DOCUMENTATION.md)**
 
 ---
 
 ## 🎯 PROBLEM DEFINITION
 
-Modern web application development frequently suffers from critical security oversights due to reliance on insecure client-side parameters, lack of input sanitization, and improper database query construction. Traditional academic security courses often present these concepts purely in theory, leaving students with limited practical insight into how vulnerabilities are actively exploited or mitigated.
-
-Specifically, web applications face four major technical challenges:
-1. **Dynamic Database Construction**: Developers concatenate raw user input directly into database queries, exposing systems to Authentication Bypass and Data Exfiltration via SQL Injection (SQLi).
-2. **Unrestricted Authentication Endpoints**: Applications fail to enforce attempt thresholds or rate limiting, enabling automated botnets to perform brute-force credential-guessing attacks.
-3. **Over-Trusting Client State**: E-commerce platforms trust HTTP request parameters (such as product prices or user roles) sent from the browser, allowing clients to tamper with transaction totals using browser inspector tools or HTTP proxies.
-4. **Visual Domain Deception**: Users fall victim to Internationalized Domain Name (IDN) Homograph phishing attacks where visually identical Cyrillic characters trick victims into surrendering session credentials.
+Modern web application development frequently suffers from critical security oversights due to reliance on insecure client-side parameters, lack of input sanitization, and improper database query construction. Specifically, web applications face four major technical challenges:
+1. **Dynamic Database Construction**: Developers concatenate raw user input directly into database queries, exposing systems to Authentication Bypass via SQL Injection (SQLi).
+2. **Unrestricted Authentication Endpoints**: Applications fail to enforce attempt thresholds or rate limiting, enabling automated brute-force attacks.
+3. **Over-Trusting Client State**: E-commerce platforms trust HTTP request parameters (such as product prices) sent from the browser, allowing clients to tamper with transaction totals.
+4. **Visual Domain Deception**: Users fall victim to Internationalized Domain Name (IDN) Homograph phishing attacks where visually identical Cyrillic characters trick victims.
 
 ---
 
@@ -47,7 +53,7 @@ Specifically, web applications face four major technical challenges:
 |---|---|---|---|---|
 | **1** | **SQL Injection (SQLi)** | Dynamic query string concatenation (`SELECT * FROM users WHERE username='$user' AND password='$pass'`) | Parameterized Queries (Prepared Statements `$stmt->bind_param("ss", ...)`) | Auth Gateway (`/login`) |
 | **2** | **Brute Force Attack** | Unlimited login authentication attempts without throttling | Rate limiting & 30-second Account Lockout after 3 failed tries | Auth Gateway (`/login`) |
-| **3** | **Parameter Tampering** | Trusting client-supplied price parameter input box (Tampering ₹3,499 → ₹1) | Server-side validation against authoritative SQLite `lab.db` prices | Shop Store & Checkout (`/checkout`) |
+| **3** | **Parameter Tampering** | Trusting client-supplied price parameter input box (Tampering ₹3,499 → ₹1) | Server-side validation against authoritative SQLite `lab.db` prices | Shop Store (`/checkout`) |
 | **4** | **IDN Homograph Phishing** | No warning on spoofed Cyrillic link (`cybеrmart.com`) | Mixed-script Cyrillic domain detection & Punycode warning (`xn--cybmart-9ya.com`) | User Inbox (`/inbox`) |
 | **5** | **Stored Cross-Site Scripting (XSS)** | Unescaped DOM echo (`<?php echo $_POST['comment']; ?>`) | Context-aware HTML Entity Encoding (`htmlspecialchars()`) | Customer Reviews (`/reviews`) |
 | **6** | **LFI & OS Command Injection** | Unsafe `include()` path traversal & `shell_exec()` | `basename()` whitelist & `FILTER_VALIDATE_IP` escaping | System Diagnostics (`/diagnostics`) |
@@ -85,7 +91,7 @@ Specifically, web applications face four major technical challenges:
 
 ---
 
-## 🛠️ TOOLS USED
+## 🛠️ TOOLS & TECHNOLOGIES USED
 
 | Category | Technology | Usage Description |
 |---|---|---|
@@ -100,27 +106,6 @@ Specifically, web applications face four major technical challenges:
 
 ---
 
-## ⚡ ATTACK & DEFENSE DEMONSTRATIONS
-
-### 1. SQL Injection (SQLi)
-- **Vulnerable Code**: `$sql = "SELECT * FROM users WHERE username = '$user' AND password = '$pass'";`
-- **Payload**: `' OR '1'='1`
-- **Patched Defense**: `$stmt = $conn->prepare("SELECT id, username, role FROM users WHERE username = ? AND password = ?");`
-
-### 2. Brute Force Protection
-- **Vulnerable Code**: Unlimited authentication attempts.
-- **Patched Defense**: 3-failed-attempt threshold → 30-second cooldown account lockout.
-
-### 3. Parameter Tampering
-- **Vulnerable Code**: `$charged_total = $_POST['price'] * $_POST['quantity'];`
-- **Patched Defense**: `$db_price = $db->query("SELECT price FROM products WHERE id = $id")->fetch_assoc()['price'];`
-
-### 4. IDN Homograph Phishing
-- **Spoofed Domain**: `http://cybеrmart.com` (Cyrillic 'е')
-- **Patched Defense**: Mixed-script detection & ASCII Punycode warning (`xn--cybmart-9ya.com`).
-
----
-
 ## ⚙️ INSTALLATION & RUN INSTRUCTIONS
 
 ```bash
@@ -130,4 +115,4 @@ npm install
 npm run dev
 ```
 
-Navigate to `http://localhost:5173/` in your browser.
+Open your browser and navigate to `http://localhost:5173/`.
