@@ -12,6 +12,17 @@ export interface LogEntry {
   details?: Record<string, unknown>;
 }
 
+export interface UserActionLog {
+  id: string;
+  timestamp: string;
+  module: ModuleId | string;
+  actionType: string;
+  payload: string;
+  mode: Mode;
+  status: 'EXPLOITED' | 'BLOCKED' | 'EXECUTED' | 'FAILED';
+  details?: string;
+}
+
 export interface BankCustomer {
   id: number;
   username: string;

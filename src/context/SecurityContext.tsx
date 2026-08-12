@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Mode, ModuleId, LogEntry, BankCustomer, FeedbackItem, Order } from '../types/security';
 import { INITIAL_CUSTOMERS, INITIAL_FEEDBACKS } from '../data/mockData';
-import { loadLocalDB, saveLocalDB } from '../services/dbStorage';
+import { loadLocalDB, saveLocalDB, recordUserAction } from '../services/dbStorage';
 import confetti from 'canvas-confetti';
 
 interface SecurityContextType {
@@ -137,6 +137,16 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       details
     };
     setLogs((prev) => [newLog, ...prev]);
+
+    // Automatically record action into lab_db.json database file
+    recordUserAction(
+      category,
+      level.toUpperCase(),
+      message,
+      mode,
+      level === 'exploit' ? 'EXPLOITED' : level === 'secure' ? 'BLOCKED' : 'EXECUTED',
+      codeSnippet || (details ? JSON.stringify(details) : '')
+    );
 
     if (level === 'exploit') {
       triggerConfetti();

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSecurity } from '../context/SecurityContext';
-import { exportLabDBAsJSONFile, resetLocalDB } from '../services/dbStorage';
+import { exportLabDBAsJSONFile, exportSQLiteDBDump, resetLocalDB } from '../services/dbStorage';
 import { Terminal, Trash2, X, ChevronDown, ChevronRight, ChevronUp, Download, RotateCcw, Database } from 'lucide-react';
 
 interface TerminalLogsProps {
@@ -95,6 +95,15 @@ export const TerminalLogs: React.FC<TerminalLogsProps> = ({ isOpen, onClose, onO
         </div>
 
         <div className="flex items-center gap-2 text-xs font-mono">
+          <button
+            onClick={exportSQLiteDBDump}
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-950/90 hover:bg-emerald-900 px-2.5 py-1 text-[11px] font-bold text-emerald-300 border border-emerald-800 transition"
+            title="Download SQLite Database File (lab_actions_audit.sql / lab.db)"
+          >
+            <Database className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Export SQLite lab.db 🗄️</span>
+          </button>
+
           <button
             onClick={exportLabDBAsJSONFile}
             className="flex items-center gap-1.5 rounded-lg bg-indigo-950/90 hover:bg-indigo-900 px-2.5 py-1 text-[11px] font-bold text-indigo-300 border border-indigo-800 transition"
