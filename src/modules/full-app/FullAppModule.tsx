@@ -461,16 +461,17 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
           >
             <div className="flex items-center gap-2 text-indigo-200 font-bold text-xs">
               <Zap className="h-4 w-4 text-amber-400 animate-pulse" />
-              <span>⚡ Quick Attack Payload Presets (CyberMart Security Lab)</span>
+              <span>⚡ Quick Attack Payload Presets (10 Vectors Loaded)</span>
             </div>
             <span className="text-xs text-indigo-300 font-mono">{isTestBenchOpen ? 'Hide Presets' : 'Show Presets'}</span>
           </button>
 
           {isTestBenchOpen && (
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-950/80 text-xs">
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 bg-gray-950/90 text-xs border-t border-indigo-900/40">
+              {/* Preset 1 */}
               <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
-                <span className="font-bold text-blue-400 flex items-center gap-1">
-                  <Lock className="h-3.5 w-3.5" /> 1. SQL Injection
+                <span className="font-bold text-blue-400 flex items-center gap-1 text-[11px]">
+                  <Lock className="h-3.5 w-3.5" /> 1. SQLi Auth Bypass
                 </span>
                 <button
                   onClick={() => {
@@ -478,53 +479,154 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
                     setLoginPassword("anything");
                     handleTabSwitch('login');
                   }}
-                  className="w-full rounded bg-blue-950/80 hover:bg-blue-900 py-1.5 text-[11px] text-blue-200 border border-blue-800 transition font-mono"
+                  className="w-full rounded bg-blue-950/80 hover:bg-blue-900 py-1.5 text-[10px] text-blue-200 border border-blue-800 transition font-mono"
                 >
                   Preset: ' OR '1'='1
                 </button>
               </div>
 
+              {/* Preset 2 */}
               <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
-                <span className="font-bold text-emerald-400 flex items-center gap-1">
-                  <DollarSign className="h-3.5 w-3.5" /> 2. Parameter Tampering
+                <span className="font-bold text-cyan-400 flex items-center gap-1 text-[11px]">
+                  <Lock className="h-3.5 w-3.5" /> 2. SQLi UNION Extract
                 </span>
                 <button
                   onClick={() => {
-                    setClientSubmittedPrice(1);
-                    handleTabSwitch('shop');
+                    setLoginUsername("' UNION SELECT 1,'admin','hash','CTO'--");
+                    setLoginPassword("admin");
+                    handleTabSwitch('login');
                   }}
-                  className="w-full rounded bg-emerald-950/80 hover:bg-emerald-900 py-1.5 text-[11px] text-emerald-200 border border-emerald-800 transition font-mono"
+                  className="w-full rounded bg-cyan-950/80 hover:bg-cyan-900 py-1.5 text-[10px] text-cyan-200 border border-cyan-800 transition font-mono"
                 >
-                  Tamper Price: ₹3,499 → ₹1
+                  Preset: ' UNION SELECT...
                 </button>
               </div>
 
+              {/* Preset 3 */}
               <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
-                <span className="font-bold text-amber-400 flex items-center gap-1">
-                  <Globe className="h-3.5 w-3.5" /> 3. IDN Homograph
+                <span className="font-bold text-emerald-400 flex items-center gap-1 text-[11px]">
+                  <DollarSign className="h-3.5 w-3.5" /> 3. Tamper ₹3,499 → ₹1
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedProduct(CYBERMART_PRODUCTS[0]);
+                    setClientSubmittedPrice(1);
+                    handleTabSwitch('shop');
+                  }}
+                  className="w-full rounded bg-emerald-950/80 hover:bg-emerald-900 py-1.5 text-[10px] text-emerald-200 border border-emerald-800 transition font-mono"
+                >
+                  Tamper Price: ₹1
+                </button>
+              </div>
+
+              {/* Preset 4 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-teal-400 flex items-center gap-1 text-[11px]">
+                  <DollarSign className="h-3.5 w-3.5" /> 4. Free Laptop (₹0)
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedProduct(CYBERMART_PRODUCTS[3]); // Alienware Laptop ₹85,000
+                    setClientSubmittedPrice(0);
+                    handleTabSwitch('shop');
+                  }}
+                  className="w-full rounded bg-teal-950/80 hover:bg-teal-900 py-1.5 text-[10px] text-teal-200 border border-teal-800 transition font-mono"
+                >
+                  Tamper Laptop: ₹0
+                </button>
+              </div>
+
+              {/* Preset 5 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-amber-400 flex items-center gap-1 text-[11px]">
+                  <Globe className="h-3.5 w-3.5" /> 5. IDN Cyrillic Link
                 </span>
                 <button
                   onClick={() => {
                     handleTabSwitch('inbox');
                   }}
-                  className="w-full rounded bg-amber-950/80 hover:bg-amber-900 py-1.5 text-[11px] text-amber-200 border border-amber-800 transition font-mono"
+                  className="w-full rounded bg-amber-950/80 hover:bg-amber-900 py-1.5 text-[10px] text-amber-200 border border-amber-800 transition font-mono"
                 >
-                  Click Cyrillic Homograph Link
+                  Click Homograph Mail
                 </button>
               </div>
 
+              {/* Preset 6 */}
               <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
-                <span className="font-bold text-purple-400 flex items-center gap-1">
-                  <MessageSquare className="h-3.5 w-3.5" /> 4. Stored XSS Review
+                <span className="font-bold text-purple-400 flex items-center gap-1 text-[11px]">
+                  <MessageSquare className="h-3.5 w-3.5" /> 6. Stored XSS Alert
                 </span>
                 <button
                   onClick={() => {
-                    setNewReviewText('<script>alert("CyberMart XSS Executed!")</script>');
+                    setNewReviewText('<script>alert("CyberMart Cookie: " + document.cookie)</script>');
                     handleTabSwitch('reviews');
                   }}
-                  className="w-full rounded bg-purple-950/80 hover:bg-purple-900 py-1.5 text-[11px] text-purple-200 border border-purple-800 transition font-mono"
+                  className="w-full rounded bg-purple-950/80 hover:bg-purple-900 py-1.5 text-[10px] text-purple-200 border border-purple-800 transition font-mono"
                 >
-                  Inject &lt;script&gt; Cookie Alert
+                  Inject &lt;script&gt; Cookie
+                </button>
+              </div>
+
+              {/* Preset 7 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-pink-400 flex items-center gap-1 text-[11px]">
+                  <MessageSquare className="h-3.5 w-3.5" /> 7. Stored XSS img Onerror
+                </span>
+                <button
+                  onClick={() => {
+                    setNewReviewText('<img src=x onerror="alert(\'XSS Executed via Image Onerror!\')">');
+                    handleTabSwitch('reviews');
+                  }}
+                  className="w-full rounded bg-pink-950/80 hover:bg-pink-900 py-1.5 text-[10px] text-pink-200 border border-pink-800 transition font-mono"
+                >
+                  Inject &lt;img onerror&gt;
+                </button>
+              </div>
+
+              {/* Preset 8 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-red-400 flex items-center gap-1 text-[11px]">
+                  <Server className="h-3.5 w-3.5" /> 8. LFI Traversal
+                </span>
+                <button
+                  onClick={() => {
+                    setLfiFile('../../../../../../etc/passwd');
+                    handleTabSwitch('diagnostics');
+                  }}
+                  className="w-full rounded bg-red-950/80 hover:bg-red-900 py-1.5 text-[10px] text-red-200 border border-red-800 transition font-mono"
+                >
+                  Read /etc/passwd
+                </button>
+              </div>
+
+              {/* Preset 9 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-orange-400 flex items-center gap-1 text-[11px]">
+                  <Terminal className="h-3.5 w-3.5" /> 9. Ping Shell RCE
+                </span>
+                <button
+                  onClick={() => {
+                    setPingTarget('8.8.8.8; cat /etc/passwd');
+                    handleTabSwitch('diagnostics');
+                  }}
+                  className="w-full rounded bg-orange-950/80 hover:bg-orange-900 py-1.5 text-[10px] text-orange-200 border border-orange-800 transition font-mono"
+                >
+                  Ping + Shell Inject
+                </button>
+              </div>
+
+              {/* Preset 10 */}
+              <div className="rounded-lg border border-gray-800 bg-gray-900/90 p-2.5 space-y-1.5 glass-card-hover">
+                <span className="font-bold text-indigo-400 flex items-center gap-1 text-[11px]">
+                  <Activity className="h-3.5 w-3.5" /> 10. Security Center
+                </span>
+                <button
+                  onClick={() => {
+                    handleTabSwitch('admin');
+                  }}
+                  className="w-full rounded bg-indigo-950/80 hover:bg-indigo-900 py-1.5 text-[10px] text-indigo-200 border border-indigo-800 transition font-mono"
+                >
+                  View Events Audit Table
                 </button>
               </div>
             </div>
