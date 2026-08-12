@@ -64,7 +64,11 @@ const AppContent: React.FC = () => {
       </footer>
 
       {/* Modals & Terminal Log Drawer */}
-      <TerminalLogs isOpen={isTerminalOpen} onClose={() => setIsTerminalOpen(false)} />
+      <TerminalLogs 
+        isOpen={isTerminalOpen} 
+        onClose={() => setIsTerminalOpen(false)} 
+        onOpen={() => setIsTerminalOpen(true)} 
+      />
       <CodeInspectorModal />
       <VivaFlashcardsModal />
       <LabReportModal />

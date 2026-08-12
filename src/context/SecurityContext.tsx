@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Mode, ModuleId, LogEntry, BankCustomer, FeedbackItem, Order } from '../types/security';
 import { INITIAL_CUSTOMERS, INITIAL_FEEDBACKS } from '../data/mockData';
+import { loadLocalDB, saveLocalDB } from '../services/dbStorage';
 import confetti from 'canvas-confetti';
 
 interface SecurityContextType {
@@ -56,16 +57,27 @@ interface SecurityContextType {
 
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
 
+const initialDB = loadLocalDB();
+
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setModeState] = useState<Mode>('vulnerable');
+  const [mode, setModeState] = useState<Mode>(initialDB.mode || 'vulnerable');
   const [activeModule, setActiveModule] = useState<ModuleId>('sqli');
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(initialDB.logs || []);
   
   const [customers, setCustomers] = useState<BankCustomer[]>(INITIAL_CUSTOMERS);
   const [currentUser, setCurrentUser] = useState<BankCustomer | null>(null);
 
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>(INITIAL_FEEDBACKS);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(initialDB.orders || []);
+
+  // Sync to lab_db.json whenever mode, logs, or orders update
+  useEffect(() => {
+    saveLocalDB({
+      mode,
+      logs,
+      orders
+    });
+  }, [mode, logs, orders]);
 
   // Password Guessing state
   const [failedAttempts, setFailedAttempts] = useState<number>(0);
