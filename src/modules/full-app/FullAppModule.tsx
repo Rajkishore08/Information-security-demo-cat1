@@ -17,12 +17,16 @@ import {
   X,
   Copy,
   Check,
-  UserCheck
+  UserCheck,
+  Link,
+  Mail,
+  Globe,
+  ShieldAlert
 } from 'lucide-react';
 
 export const FullAppModule: React.FC = () => {
   const { mode, addLog, addOrder } = useSecurity();
-  const [activeTab, setActiveTab] = useState<'secrets' | 'auth' | 'notices' | 'licenses' | 'diagnostics'>('secrets');
+  const [activeTab, setActiveTab] = useState<'secrets' | 'auth' | 'notices' | 'licenses' | 'diagnostics' | 'url-interp' | 'phishing'>('secrets');
   const [isStandaloneOpen, setIsStandaloneOpen] = useState<boolean>(false);
   const [isTestBenchOpen, setIsTestBenchOpen] = useState<boolean>(true);
 
@@ -58,6 +62,19 @@ export const FullAppModule: React.FC = () => {
   const [lfiOutput, setLfiOutput] = useState<string | null>(null);
   const [pingHost, setPingHost] = useState<string>('8.8.8.8; cat /etc/passwd');
   const [pingOutput, setPingOutput] = useState<string | null>(null);
+
+  // 6. URL Interpretation State
+  const [urlRoleParam, setUrlRoleParam] = useState<string>('CTO_Admin');
+  const [urlDebugParam, setUrlDebugParam] = useState<string>('1');
+  const [urlInterpResult, setUrlInterpResult] = useState<string | null>(null);
+
+  // 7. Phishing Portal State
+  const [phishingEmail, setPhishingEmail] = useState<string>('rohan.lead@apexsoft-firm.org');
+  const [phishingPass, setPhishingPass] = useState<string>('VaultP@ss2026!');
+  const [phishingDomain, setPhishingDomain] = useState<string>('http://apexsoft-firm-security-update.com/login');
+  const [harvestedCreds, setHarvestedCreds] = useState<{ email: string; pass: string; ip: string; time: string }[]>([
+    { email: 'dev.lead@apexsoft-firm.org', pass: 'DevMaster99!', ip: '192.168.1.104', time: '10:42 AM' }
+  ]);
 
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
@@ -249,6 +266,42 @@ export const FullAppModule: React.FC = () => {
     }
   };
 
+  // URL Interpretation Handler
+  const handleUrlInterp = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'vulnerable') {
+      if (urlRoleParam === 'CTO_Admin' || urlDebugParam === '1') {
+        setSessionUser({ name: 'CTO Root Admin (URL Override)', role: 'CTO Admin', empId: 999 });
+        setUrlInterpResult(`ACCESS GRANTED: URL parameter ?role=${urlRoleParam}&debug=${urlDebugParam} trusted by server! Privilege escalated to CTO Admin.`);
+        addLog('exploit', 'URL INTERPRETATION EXPLOIT', `⚡ Elevated user privileges to CTO Admin via URL parameter override ?role=${urlRoleParam}`);
+      } else {
+        setUrlInterpResult(`Role evaluated to ${urlRoleParam}. Standard developer access.`);
+      }
+    } else {
+      setUrlInterpResult(`HTTP 403 Forbidden: Client URL parameters ?role=${urlRoleParam} ignored. Server enforces validated session token.`);
+      addLog('secure', 'URL INTERPRETATION DEFENSE', `🔒 Replaced untrusted $_GET['role'] parameter with server session authentication.`);
+    }
+  };
+
+  // Phishing Handler
+  const handlePhishingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'vulnerable') {
+      const newHarvested = {
+        email: phishingEmail,
+        pass: phishingPass,
+        ip: '192.168.1.108',
+        time: new Date().toLocaleTimeString()
+      };
+      setHarvestedCreds((prev) => [newHarvested, ...prev]);
+      addLog('vuln', 'PHISHING HARVESTER', `Captured credentials on fake portal [${phishingDomain}]: Email=${phishingEmail}`);
+      addLog('exploit', 'PHISHING EXPLOIT', `⚡ Victim submitted credentials to spoofed domain ${phishingDomain}! Password: ${phishingPass}`);
+    } else {
+      addLog('secure', 'PHISHING DEFENSE', `🔒 FIDO2 WebAuthn origin binding blocked credential submission to unapproved domain: ${phishingDomain}`);
+      alert(`🔒 SECURITY DEFENSE: FIDO2 / WebAuthn Hardware Token blocked authentication on untrusted phishing domain "${phishingDomain}". Real Domain: "https://apexsoft-firm.org"`);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* Firm Vault App Header Bar */}
@@ -308,116 +361,71 @@ export const FullAppModule: React.FC = () => {
         </button>
 
         {isTestBenchOpen && (
-          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-950/80">
+          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-950/80 text-xs">
             {/* Box 1: SQLi Login */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
-              <span className="text-xs font-bold text-blue-400 flex items-center gap-1">
-                <Lock className="h-3.5 w-3.5" /> 1. SQL Injection / Auth Bypass
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
+              <span className="font-bold text-blue-400 flex items-center gap-1">
+                <Lock className="h-3.5 w-3.5" /> 1. SQLi Auth Bypass
               </span>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    setLoginUser("' OR '1'='1");
-                    setLoginPass("anything");
-                    setActiveTab('auth');
-                  }}
-                  className="rounded bg-blue-950 hover:bg-blue-900 px-2 py-1 text-[11px] text-blue-200 border border-blue-800 transition"
-                >
-                  Preset: ' OR '1'='1
-                </button>
-                <button
-                  onClick={() => {
-                    setLoginUser("admin123");
-                    setLoginPass("welcome");
-                    setActiveTab('auth');
-                  }}
-                  className="rounded bg-gray-800 hover:bg-gray-700 px-2 py-1 text-[11px] text-gray-300 border border-gray-700 transition"
-                >
-                  Brute Force: admin123
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setLoginUser("' OR '1'='1");
+                  setLoginPass("anything");
+                  setActiveTab('auth');
+                }}
+                className="w-full rounded bg-blue-950 hover:bg-blue-900 py-1 text-[11px] text-blue-200 border border-blue-800 transition"
+              >
+                Preset: ' OR '1'='1
+              </button>
             </div>
 
-            {/* Box 2: Stored XSS Note */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
-              <span className="text-xs font-bold text-purple-400 flex items-center gap-1">
-                <Megaphone className="h-3.5 w-3.5" /> 2. Stored XSS Developer Note
+            {/* Box 2: URL Interpretation */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
+              <span className="font-bold text-cyan-400 flex items-center gap-1">
+                <Link className="h-3.5 w-3.5" /> 2. URL Interpretation
               </span>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    setNoteTopic("Security Audit");
-                    setNoteContent('<script>alert("Vault Session Stolen: " + document.cookie)</script>');
-                    setActiveTab('notices');
-                  }}
-                  className="rounded bg-purple-950 hover:bg-purple-900 px-2 py-1 text-[11px] text-purple-200 border border-purple-800 transition"
-                >
-                  Preset: &lt;script&gt; Cookie Theft
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setUrlRoleParam('CTO_Admin');
+                  setUrlDebugParam('1');
+                  setActiveTab('url-interp');
+                }}
+                className="w-full rounded bg-cyan-950 hover:bg-cyan-900 py-1 text-[11px] text-cyan-200 border border-cyan-800 transition"
+              >
+                Preset: ?role=CTO_Admin
+              </button>
             </div>
 
-            {/* Box 3: IDOR Secret Key */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
-              <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                <Key className="h-3.5 w-3.5" /> 3. IDOR Master Secret Key
+            {/* Box 3: Phishing Simulator */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
+              <span className="font-bold text-amber-400 flex items-center gap-1">
+                <Mail className="h-3.5 w-3.5" /> 3. Phishing Simulator
               </span>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    handleSecretLookup(999);
-                    setActiveTab('secrets');
-                  }}
-                  className="rounded bg-amber-950 hover:bg-amber-900 px-2 py-1 text-[11px] text-amber-200 border border-amber-800 transition"
-                >
-                  Fetch Restricted CTO Key ?secret_id=999
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setPhishingEmail("dev.lead@apexsoft-firm.org");
+                  setActiveTab('phishing');
+                }}
+                className="w-full rounded bg-amber-950 hover:bg-amber-900 py-1 text-[11px] text-amber-200 border border-amber-800 transition"
+              >
+                Preset: Spoofed Phishing Domain
+              </button>
             </div>
 
-            {/* Box 4: Price Tampering License */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2">
-              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                <ShoppingCart className="h-3.5 w-3.5" /> 4. License Price Manipulation
+            {/* Box 4: LFI & Command Injection */}
+            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
+              <span className="font-bold text-red-400 flex items-center gap-1">
+                <Server className="h-3.5 w-3.5" /> 4. LFI / RCE Read /etc/passwd
               </span>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    setSelectedLicensePrice(10);
-                    setActiveTab('licenses');
-                  }}
-                  className="rounded bg-emerald-950 hover:bg-emerald-900 px-2 py-1 text-[11px] text-emerald-200 border border-emerald-800 transition"
-                >
-                  Tamper SAST License to ₹10
-                </button>
-              </div>
-            </div>
-
-            {/* Box 5: LFI & Command Injection */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3.5 space-y-2 md:col-span-2">
-              <span className="text-xs font-bold text-red-400 flex items-center gap-1">
-                <Server className="h-3.5 w-3.5" /> 5. LFI File Read & Command Injection
-              </span>
-              <div className="flex gap-1.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    setLfiPath("../../../../etc/passwd");
-                    setActiveTab('diagnostics');
-                  }}
-                  className="rounded bg-red-950 hover:bg-red-900 px-2 py-1 text-[11px] text-red-200 border border-red-800 transition"
-                >
-                  LFI: ../../../../etc/passwd
-                </button>
-                <button
-                  onClick={() => {
-                    setPingHost("8.8.8.8; cat /etc/passwd");
-                    setActiveTab('diagnostics');
-                  }}
-                  className="rounded bg-red-950 hover:bg-red-900 px-2 py-1 text-[11px] text-red-200 border border-red-800 transition"
-                >
-                  RCE: 8.8.8.8; cat /etc/passwd
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  setLfiPath("../../../../etc/passwd");
+                  setActiveTab('diagnostics');
+                }}
+                className="w-full rounded bg-red-950 hover:bg-red-900 py-1 text-[11px] text-red-200 border border-red-800 transition"
+              >
+                Preset: ../../../../etc/passwd
+              </button>
             </div>
           </div>
         )}
@@ -435,6 +443,30 @@ export const FullAppModule: React.FC = () => {
         >
           <Key className="h-4 w-4" />
           <span>Firm Secrets & API Keys</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('url-interp')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'url-interp'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Link className="h-4 w-4" />
+          <span>URL Interpretation</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('phishing')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'phishing'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Mail className="h-4 w-4" />
+          <span>Phishing Website Portal</span>
         </button>
 
         <button
@@ -485,6 +517,151 @@ export const FullAppModule: React.FC = () => {
           <span>LFI & Server Diagnostics</span>
         </button>
       </div>
+
+      {/* VIEW: URL INTERPRETATION */}
+      {activeTab === 'url-interp' && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <div className="border-b border-gray-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Link className="h-5 w-5 text-cyan-400" />
+                URL Interpretation & Parameter Manipulation Simulator
+              </h3>
+              <p className="text-xs text-gray-400">Manipulate HTTP GET address bar parameters to alter user role context and debug modes</p>
+            </div>
+
+            {/* Address Bar Simulator */}
+            <div className="flex items-center gap-2 bg-black p-3 rounded-xl border border-gray-800 font-mono text-xs text-cyan-300">
+              <span className="text-gray-500 font-bold">ADDRESS BAR:</span>
+              <span className="text-gray-300">https://vault.apexsoft-firm.org/app</span>
+              <span className="text-amber-300 font-bold">?role={urlRoleParam}&debug={urlDebugParam}</span>
+            </div>
+
+            <form onSubmit={handleUrlInterp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">Altered URL ?role= Parameter Input Box:</label>
+                <select
+                  value={urlRoleParam}
+                  onChange={(e) => setUrlRoleParam(e.target.value)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-amber-300 font-mono font-bold"
+                >
+                  <option value="guest">guest (Standard Guest)</option>
+                  <option value="Developer">Developer (Standard Dev)</option>
+                  <option value="CTO_Admin">CTO_Admin (Elevated Root Privileges)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1">Altered URL ?debug= Parameter Input Box:</label>
+                <select
+                  value={urlDebugParam}
+                  onChange={(e) => setUrlDebugParam(e.target.value)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-amber-300 font-mono font-bold"
+                >
+                  <option value="0">0 (Debug Disabled)</option>
+                  <option value="1">1 (Debug Console Enabled)</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-500 py-3 text-xs font-bold text-white shadow-lg transition"
+                >
+                  Send Request with Manipulated URL Parameters
+                </button>
+              </div>
+            </form>
+
+            {urlInterpResult && (
+              <div className={`rounded-xl border p-4 font-mono text-xs ${
+                mode === 'vulnerable' ? 'border-red-800 bg-red-950/40 text-red-200' : 'border-emerald-800 bg-emerald-950/40 text-emerald-200'
+              }`}>
+                {urlInterpResult}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIEW: PHISHING WEBSITE PORTAL */}
+      {activeTab === 'phishing' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left: Fake Phishing Login Webpage */}
+          <div className="lg:col-span-6 rounded-2xl border border-amber-900/60 bg-gray-900/80 p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1.5">
+                <Globe className="h-4 w-4" /> Spoofed Phishing Login Portal
+              </span>
+              <span className="rounded bg-red-950 px-2 py-0.5 text-[10px] text-red-400 border border-red-800 font-bold">UNTRUSTED DOMAIN</span>
+            </div>
+
+            <div className="rounded-xl bg-black p-2.5 font-mono text-[11px] text-red-300 border border-red-900/60 flex items-center justify-between gap-2">
+              <span className="shrink-0">URL:</span>
+              <input
+                type="text"
+                value={phishingDomain}
+                onChange={(e) => setPhishingDomain(e.target.value)}
+                className="flex-1 bg-transparent font-bold text-red-400 focus:outline-none border-b border-red-800"
+              />
+              <button onClick={() => copyText(phishingDomain)} className="text-gray-400 hover:text-white flex items-center gap-1 shrink-0">
+                {copiedText === phishingDomain ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
+            <form onSubmit={handlePhishingSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Corporate Email Address:</label>
+                <input
+                  type="email"
+                  value={phishingEmail}
+                  onChange={(e) => setPhishingEmail(e.target.value)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-300 mb-1">Vault Account Password:</label>
+                <input
+                  type="password"
+                  value={phishingPass}
+                  onChange={(e) => setPhishingPass(e.target.value)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-bold text-white shadow-lg transition"
+              >
+                Submit Credentials on Phishing Page
+              </button>
+            </form>
+          </div>
+
+          {/* Right: Live Credential Harvester Dashboard */}
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" /> Live Attacker Credential Harvester Log
+            </h4>
+
+            <div className="space-y-3 font-mono text-xs max-h-[380px] overflow-y-auto">
+              {harvestedCreds.map((c, idx) => (
+                <div key={idx} className="rounded-xl border border-red-900/60 bg-red-950/30 p-3.5 space-y-1">
+                  <div className="flex justify-between text-gray-400 text-[11px]">
+                    <span className="text-white font-bold">{c.email}</span>
+                    <span>{c.time}</span>
+                  </div>
+                  <p className="text-red-300">Harvested Password: <strong className="text-amber-300">{c.pass}</strong></p>
+                  <p className="text-gray-500 text-[10px]">Victim IP: {c.ip}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* VIEW 1: SECRETS & API KEYS (IDOR) */}
       {activeTab === 'secrets' && (

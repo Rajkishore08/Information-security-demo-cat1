@@ -181,6 +181,20 @@ export const LabReportModal: React.FC = () => {
                   <td className="py-2 px-3 text-amber-300 print:text-amber-800">8.8.8.8; cat /etc/passwd</td>
                   <td className="py-2 px-3 text-emerald-400 print:text-emerald-700">Strict IP Validation (FILTER_VALIDATE_IP)</td>
                 </tr>
+                <tr>
+                  <td className="py-2 px-3 font-bold">06</td>
+                  <td className="py-2 px-3">URL Interpretation & Manipulation</td>
+                  <td className="py-2 px-3 text-red-400 print:text-red-700 font-bold">A01:2021 - Broken Access Control</td>
+                  <td className="py-2 px-3 text-amber-300 print:text-amber-800">?role=CTO_Admin&debug=1</td>
+                  <td className="py-2 px-3 text-emerald-400 print:text-emerald-700">Server-side Session State Verification</td>
+                </tr>
+                <tr>
+                  <td className="py-2 px-3 font-bold">07</td>
+                  <td className="py-2 px-3">Phishing & Domain Spoofing</td>
+                  <td className="py-2 px-3 text-red-400 print:text-red-700 font-bold">A07:2021 - Auth & Social Eng</td>
+                  <td className="py-2 px-3 text-amber-300 print:text-amber-800">IDN Cyrillic Spoofed Login Portal</td>
+                  <td className="py-2 px-3 text-emerald-400 print:text-emerald-700">FIDO2 / WebAuthn Hardware Origin Binding</td>
+                </tr>
               </tbody>
             </table>
           </div>

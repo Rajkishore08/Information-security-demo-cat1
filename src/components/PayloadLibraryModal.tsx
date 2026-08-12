@@ -13,6 +13,8 @@ export const PayloadLibraryModal: React.FC = () => {
     { id: 'sqli', name: 'SQL Injection' },
     { id: 'xss', name: 'Cross-Site Scripting (XSS)' },
     { id: 'parameter-tampering', name: 'Parameter Tampering & IDOR' },
+    { id: 'url-interpretation', name: 'URL Interpretation' },
+    { id: 'phishing', name: 'Phishing Attacks' },
     { id: 'command-injection', name: 'OS Command Injection' },
     { id: 'lfi', name: 'Local File Inclusion (LFI)' }
   ];
@@ -37,6 +39,15 @@ export const PayloadLibraryModal: React.FC = () => {
       { label: "IDOR Confidential Access", payload: "?emp_id=999", description: "Alters URL employee ID to fetch confidential executive CEO salary slip." },
       { label: "Hidden Product Catalog ID", payload: "?id=10", description: "Direct object reference accessing unlisted VIP testing vouchers." },
       { label: "Role Escalation Parameter", payload: '"role": "Admin"', description: "Injects elevated admin role into user profile update POST body." }
+    ],
+    'url-interpretation': [
+      { label: "Role Elevation Parameter", payload: "?role=CTO_Admin&debug=1", description: "URL GET parameter manipulation overriding server user role to CTO Admin." },
+      { label: "Secret Exfiltration Parameter", payload: "?view_secret=all", description: "Alters GET parameter to unlock all confidential firm API keys." },
+      { label: "Direct File Path Download", payload: "?download=../../backup/vault_db.sqlite", description: "URL path traversal parameter downloading firm database backup." }
+    ],
+    phishing: [
+      { label: "IDN Cyrillic Homograph Domain", payload: "http://аpexsoft.com/login", description: "Spoofed Cyrillic 'а' domain visually mimicking apexsoft.com (Punycode: xn--pexsoft-e1a.com)." },
+      { label: "Credential Harvesting URL", payload: "http://apexsoft-firm-security-update.com/login", description: "Fake security update domain stealing engineer login credentials." }
     ],
     'command-injection': [
       { label: "Linux /etc/passwd Read", payload: "8.8.8.8; cat /etc/passwd", description: "Semicolon appends secondary OS shell command reading system accounts." },
