@@ -34,6 +34,18 @@ The primary objective of CyberMart is to provide a controlled environment where 
 - How industry-standard security mitigations (prepared statements, HTML entity encoding, server-side database verification, rate limiting, and role-based access control) neutralize attacks.
 - How security events and user actions are monitored, logged, and exported into persistent audit databases.
 
+### 🏛️ Application Portal & Vulnerability Mapping Summary
+
+```text
+CyberMart E-Commerce Storefront Portal        SQL Injection, Parameter Tampering, Stored XSS, Price Integrity Override
+Authentication & Employee Gateway Portal       SQL Injection (Auth Bypass), Password Guessing, CAPTCHA, 30s Account Lockout
+User Security Inbox & Mail Portal             IDN Homograph Phishing, Domain Spoofing, Credential Harvesting
+Product Reviews & Feedback Portal             Stored Cross-Site Scripting (XSS), DOM Payload Execution
+Developer Diagnostics & Server Utilities      OS Command Injection (RCE), Local File Inclusion (LFI), Path Traversal
+REST API & Secret Vault Access Portal         URL Interpretation, Insecure Direct Object Reference (IDOR), Privilege Escalation
+Executive SOC Security Control Portal         Dynamic Security Control Matrix, Real-Time Event Audit Table, SQLite lab.db Export
+```
+
 ---
 
 ## 🔴 2. DUAL SECURITY EXECUTION FRAMEWORK
