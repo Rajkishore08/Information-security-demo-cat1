@@ -276,9 +276,9 @@ export const DICTIONARY_PASSWORDS: string[] = [
   'admin123',
   'password',
   '123456',
-  'welcome',
   'qwerty',
   'letmein',
+  'welcome', // 6th Guessing Attempt (Target Password)
   'admin2026',
   'superman',
   'monkey',

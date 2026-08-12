@@ -176,18 +176,18 @@ export const DictionaryAttackSimulator: React.FC = () => {
           </div>
         </div>
 
-        {/* Lockout Warning Banner */}
+        {/* Lockout Warning Banner with 30s Timeout Timer */}
         {isAccountLocked && (
-          <div className="rounded-xl border border-red-800 bg-red-950 p-4 text-xs text-red-200 animate-pulse-glow flex items-start gap-3">
+          <div className="rounded-xl border border-red-800 bg-red-950/90 p-4 text-xs text-red-200 animate-pulse flex items-start gap-3 shadow-xl">
             <Lock className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-red-300 text-sm block">🔒 ACCOUNT LOCKED OUT!</span>
-              <p className="mt-1">
-                Security defense triggered: Account locked for 5 consecutive failed attempts.
+              <span className="font-bold text-red-300 text-sm block">🔒 30-SECOND ACCOUNT LOCKOUT TIMEOUT ACTIVE!</span>
+              <p className="mt-1 leading-relaxed">
+                Security defense triggered: Account locked for 30 seconds after 5 consecutive failed password attempts.
               </p>
-              <div className="mt-2 text-xs font-mono font-bold text-yellow-300 flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Time remaining: {lockoutTimeRemaining} seconds</span>
+              <div className="mt-2 text-xs font-mono font-bold text-amber-300 flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-lg border border-amber-800/60 w-fit">
+                <Clock className="h-4 w-4 text-amber-400 animate-spin" />
+                <span>Security Cooldown Timeout: {lockoutTimeRemaining}s remaining</span>
               </div>
             </div>
           </div>
@@ -195,22 +195,33 @@ export const DictionaryAttackSimulator: React.FC = () => {
 
         {/* Wordlist Config */}
         <div className="rounded-xl bg-gray-950 p-4 border border-gray-800 space-y-2">
-          <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" /> Dictionary Wordlist ({DICTIONARY_PASSWORDS.length} passwords):
-          </label>
-          <div className="flex flex-wrap gap-1 font-mono text-[11px]">
-            {DICTIONARY_PASSWORDS.map((w, idx) => (
-              <span
-                key={idx}
-                className={`rounded px-2 py-1 border ${
-                  idx === currentIndex - 1
-                    ? 'bg-amber-950 text-amber-300 border-amber-700 font-bold'
-                    : 'bg-gray-900 text-gray-400 border-gray-800'
-                }`}
-              >
-                {w}
-              </span>
-            ))}
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" /> Dictionary Wordlist ({DICTIONARY_PASSWORDS.length} passwords):
+            </label>
+            <span className="text-[10px] text-emerald-400 font-mono font-bold">Target Password: Attempt #6 ('welcome')</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
+            {DICTIONARY_PASSWORDS.map((w, idx) => {
+              const attemptNum = idx + 1;
+              const isTarget = w === 'welcome';
+              const isCurrent = idx === currentIndex - 1;
+              return (
+                <span
+                  key={idx}
+                  className={`rounded px-2 py-1 border transition-all ${
+                    isCurrent
+                      ? 'bg-amber-950 text-amber-300 border-amber-700 font-bold scale-105 shadow-md'
+                      : isTarget
+                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800 font-bold'
+                      : 'bg-gray-900 text-gray-400 border-gray-800'
+                  }`}
+                  title={isTarget ? 'Target correct password (Attempt #6)' : `Attempt #${attemptNum}`}
+                >
+                  #{attemptNum}: {w} {isTarget && '🎯'}
+                </span>
+              );
+            })}
           </div>
         </div>
 
