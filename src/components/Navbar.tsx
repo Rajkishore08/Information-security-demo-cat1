@@ -15,7 +15,8 @@ import {
   FileText,
   Globe,
   Sparkles,
-  Award
+  Award,
+  Link2
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -43,7 +44,9 @@ export const Navbar: React.FC<NavbarProps> = ({ isTerminalOpen, setIsTerminalOpe
     { id: 'xss', label: '2. Cross-Site Scripting (XSS)', icon: Code2 },
     { id: 'parameter-tampering', label: '3. Parameter Tampering', icon: ShoppingCart },
     { id: 'password-guessing', label: '4. Password Guessing', icon: KeyRound },
-    { id: 'full-app', label: '5. Full Unified App 🚀', icon: Layers }
+    { id: 'url-interpretation', label: '5. URL Interpretation (IDOR)', icon: Link2 },
+    { id: 'phishing-idn', label: '6. Phishing & IDN Homograph', icon: Globe },
+    { id: 'full-app', label: '7. Full Unified App 🚀', icon: Layers }
   ];
 
   return (

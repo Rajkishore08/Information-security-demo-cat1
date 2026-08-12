@@ -13,6 +13,8 @@ import { SqliModule } from './modules/sqli/SqliModule';
 import { XssModule } from './modules/xss/XssModule';
 import { ParameterTamperingModule } from './modules/parameter-tampering/ParameterTamperingModule';
 import { PasswordGuessingModule } from './modules/password-guessing/PasswordGuessingModule';
+import { UrlInterpretationModule } from './modules/url-interpretation/UrlInterpretationModule';
+import { PhishingIdnModule } from './modules/phishing-idn/PhishingIdnModule';
 import { FullAppModule } from './modules/full-app/FullAppModule';
 import { BookOpen, FileCode2, Award } from 'lucide-react';
 
@@ -31,6 +33,8 @@ const AppContent: React.FC = () => {
         {activeModule === 'xss' && <XssModule />}
         {activeModule === 'parameter-tampering' && <ParameterTamperingModule />}
         {activeModule === 'password-guessing' && <PasswordGuessingModule />}
+        {activeModule === 'url-interpretation' && <UrlInterpretationModule />}
+        {activeModule === 'phishing-idn' && <PhishingIdnModule />}
         {activeModule === 'full-app' && <FullAppModule />}
       </main>
 

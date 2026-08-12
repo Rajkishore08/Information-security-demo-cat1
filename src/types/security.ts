@@ -1,6 +1,6 @@
 export type Mode = 'vulnerable' | 'secure';
 
-export type ModuleId = 'sqli' | 'xss' | 'parameter-tampering' | 'password-guessing' | 'full-app';
+export type ModuleId = 'sqli' | 'xss' | 'parameter-tampering' | 'password-guessing' | 'url-interpretation' | 'phishing-idn' | 'full-app';
 
 export interface LogEntry {
   id: string;
