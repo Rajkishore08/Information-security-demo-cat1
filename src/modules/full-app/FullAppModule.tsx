@@ -170,6 +170,34 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
     }, 400);
   };
 
+  // --- REAL-WORLD APP STATE & USER FLOWS ---
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [authenticatedUser, setAuthenticatedUser] = useState<{
+    id: number;
+    username: string;
+    email: string;
+    role: string;
+    balance: number;
+  } | null>(null);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [cartItems, setCartItems] = useState<{ product: Product; quantity: number; customPrice: number }[]>([
+    { product: CYBERMART_PRODUCTS[0], quantity: 1, customPrice: 1 }
+  ]);
+
+  const handleAddToCart = (product: Product) => {
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prev, { product, quantity: 1, customPrice: product.price }];
+    });
+    addLog('info', 'CYBERMART STORE', `Added ${product.name} to shopping cart.`);
+  };
+
   // --- MODULE 2: LOGIN AUTHENTICATION (SQL Injection & Brute Force) ---
   const [loginUsername, setLoginUsername] = useState<string>("' OR '1'='1");
   const [loginPassword, setLoginPassword] = useState<string>('anything');
@@ -199,6 +227,14 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
       const isSqliPayload = loginUsername.includes("' OR '1'='1") || loginUsername.includes("' OR 1=1");
 
       if (!isSqliPatched && isSqliPayload) {
+        const userObj = {
+          id: 101,
+          username: 'admin',
+          email: 'admin@cybermart.com',
+          role: 'CTO / System Administrator (SQLi Bypass)',
+          balance: 125000
+        };
+        setAuthenticatedUser(userObj);
         setAuthStatusMessage({
           type: 'success',
           msg: '⚡ AUTHENTICATION SUCCESSFUL: Dynamic SQL query evaluated to TRUE! Logged in as CyberMart System Administrator.'
@@ -209,6 +245,14 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
       }
 
       if (loginUsername === 'admin' && loginPassword === 'admin123') {
+        const userObj = {
+          id: 101,
+          username: 'admin',
+          email: 'admin@cybermart.com',
+          role: 'System Administrator',
+          balance: 125000
+        };
+        setAuthenticatedUser(userObj);
         setFailedAttemptsCount(0);
         setAuthStatusMessage({ type: 'success', msg: 'AUTHENTICATION SUCCESSFUL: Valid credentials provided.' });
         recordSecurityEvent('SQL Injection Bypass', isSqliPatched, 'Successful login with valid admin credentials.');
@@ -244,6 +288,12 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
       }
       setIsActionProcessing(false);
     }, 380);
+  };
+
+  const handleLogout = () => {
+    setAuthenticatedUser(null);
+    setAuthStatusMessage(null);
+    addLog('info', 'CYBERMART AUTH', 'User logged out of active session.');
   };
 
   // --- MODULE 3: INBOX & IDN HOMOGRAPH PHISHING ---
@@ -432,26 +482,129 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
               </button>
             </div>
 
-            {!isStandalone && onOpenStandalone && (
-              <button
-                onClick={onOpenStandalone}
-                className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-xs font-bold text-white shadow-xl shadow-indigo-600/20 transition-all transform hover:scale-105"
-              >
-                <Maximize2 className="h-4 w-4" />
-                <span>Standalone Window ↗️</span>
-              </button>
-            )}
-
             {isStandalone && onCloseStandalone && (
               <button
                 onClick={onCloseStandalone}
                 className="rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition"
+                title="Close Standalone Window"
               >
                 <X className="h-5 w-5" />
               </button>
             )}
           </div>
         </div>
+
+        {/* REAL-WORLD E-COMMERCE NAV BAR & SEARCH */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-900/90 p-3.5 rounded-xl border border-gray-800 text-xs font-mono">
+          {/* Live Storefront Search Bar */}
+          <div className="flex-1 min-w-[240px] flex items-center gap-2 bg-gray-950 px-3 py-2 rounded-lg border border-gray-800">
+            <span className="text-gray-400">🔍</span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search CyberMart products (Laptops, Phones, Crypto Wallets)..."
+              className="w-full bg-transparent text-white placeholder-gray-500 text-xs focus:outline-none"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-white">✕</button>
+            )}
+          </div>
+
+          {/* User Session State */}
+          <div className="flex items-center gap-2">
+            {authenticatedUser ? (
+              <div className="flex items-center gap-2 bg-emerald-950/80 px-3 py-1.5 rounded-lg border border-emerald-800 text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="font-bold">Logged In: {authenticatedUser.username} ({authenticatedUser.role})</span>
+                <button
+                  onClick={handleLogout}
+                  className="ml-2 underline text-[10px] text-emerald-400 hover:text-white"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => handleTabSwitch('login')}
+                className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700"
+              >
+                <Lock className="h-3.5 w-3.5 text-amber-400" />
+                <span>Guest Account (Click to Login)</span>
+              </button>
+            )}
+
+            {/* Shopping Cart Trigger */}
+            <button
+              onClick={() => setIsCartOpen((prev) => !prev)}
+              className="flex items-center gap-2 bg-indigo-950/80 hover:bg-indigo-900 px-3.5 py-1.5 rounded-lg border border-indigo-800 text-indigo-200 font-bold transition"
+            >
+              <ShoppingCart className="h-4 w-4 text-indigo-400" />
+              <span>Cart</span>
+              <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] text-white">
+                {cartItems.length}
+              </span>
+            </button>
+
+            {!isStandalone && onOpenStandalone && (
+              <button
+                onClick={onOpenStandalone}
+                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/20 transition-all transform hover:scale-105"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span>Standalone ↗️</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+        {/* SHOPPING CART DRAWER MODAL */}
+        {isCartOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm">
+            <div className="w-full max-w-md bg-gray-950 border-l border-indigo-900/60 p-6 flex flex-col justify-between shadow-2xl font-mono text-xs">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-indigo-400" />
+                    <h3 className="text-sm font-bold text-white">Your Shopping Cart ({cartItems.length})</h3>
+                  </div>
+                  <button onClick={() => setIsCartOpen(false)} className="rounded p-1 text-gray-400 hover:text-white">✕</button>
+                </div>
+
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                  {cartItems.map((item, idx) => (
+                    <div key={idx} className="rounded-xl border border-gray-800 bg-gray-900/80 p-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="font-bold text-white">{item.product.name}</h4>
+                        <p className="text-[10px] text-gray-400">Qty: {item.quantity} × DB Price ₹{item.product.price.toLocaleString()}</p>
+                      </div>
+                      <span className="font-bold text-emerald-400">₹{(item.product.price * item.quantity).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-800 pt-4 space-y-3">
+                <div className="flex justify-between text-sm font-bold text-white">
+                  <span>Subtotal:</span>
+                  <span className="text-emerald-400">
+                    ₹{cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0).toLocaleString()}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    handleTabSwitch('shop');
+                  }}
+                  className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-xs font-bold text-white shadow-xl shadow-indigo-600/20"
+                >
+                  Proceed to Storefront Checkout
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ATTACK WORKBENCH & PRESET BAR */}
         <div className="rounded-xl border border-indigo-900/60 bg-gray-900/90 shadow-xl overflow-hidden backdrop-blur-md">
@@ -632,7 +785,6 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
             </div>
           )}
         </div>
-      </div>
 
       {/* NAVIGATION TABS WITH SMOOTH FEEDBACK */}
       <div className="flex border-b border-gray-800/80 bg-gray-900/80 p-2 gap-2 rounded-2xl overflow-x-auto backdrop-blur-md">
@@ -706,31 +858,77 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
           {activeTab === 'shop' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-7 space-y-4">
-                <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5 text-indigo-400" />
-                  CyberMart Product Catalog
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5 text-indigo-400" />
+                    CyberMart Product Catalog ({CYBERMART_PRODUCTS.filter((prod) => {
+                      return searchQuery === '' || 
+                        prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        prod.description.toLowerCase().includes(searchQuery.toLowerCase());
+                    }).length} items)
+                  </h3>
+                </div>
+
+                {/* Category Filter Pills */}
+                <div className="flex flex-wrap gap-2 text-xs font-mono">
+                  {['All', 'Smartphones', 'Laptops', 'Audio', 'Crypto Hardware'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1 rounded-lg border transition ${
+                        selectedCategory === cat
+                          ? 'bg-indigo-600 text-white border-indigo-500 font-bold'
+                          : 'bg-gray-900 text-gray-400 border-gray-800 hover:bg-gray-800'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {CYBERMART_PRODUCTS.map((prod) => (
+                  {CYBERMART_PRODUCTS.filter((prod) => {
+                    const matchesSearch = searchQuery === '' || 
+                      prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      prod.description.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesCat = selectedCategory === 'All' || prod.category.toLowerCase().includes(selectedCategory.toLowerCase());
+                    return matchesSearch && matchesCat;
+                  }).map((prod) => (
                     <div
                       key={prod.id}
                       onClick={() => {
                         setSelectedProduct(prod);
                         setClientSubmittedPrice(1);
                       }}
-                      className={`rounded-2xl border p-4 cursor-pointer transition-all duration-300 ${
+                      className={`rounded-2xl border p-4 cursor-pointer transition-all duration-300 relative group ${
                         selectedProduct.id === prod.id
                           ? 'border-indigo-500 bg-indigo-950/60 shadow-xl ring-1 ring-indigo-500 scale-[1.01]'
                           : 'border-gray-800 bg-gray-900/60 hover:bg-gray-800/60 glass-card-hover'
                       }`}
                     >
-                      <img src={prod.image} alt={prod.name} className="h-32 w-full object-cover rounded-xl mb-3 shadow-md" />
+                      <div className="relative">
+                        <img src={prod.image} alt={prod.name} className="h-32 w-full object-cover rounded-xl mb-3 shadow-md" />
+                        <span className="absolute top-2 right-2 rounded bg-black/80 px-2 py-0.5 text-[10px] text-amber-300 font-mono border border-amber-900/60">
+                          ⭐⭐⭐⭐⭐ (5.0)
+                        </span>
+                      </div>
                       <h4 className="text-xs font-bold text-white mb-1">{prod.name}</h4>
                       <p className="text-[11px] text-gray-400 mb-2">{prod.description}</p>
                       <div className="flex items-center justify-between text-xs font-mono">
                         <span className="text-emerald-400 font-bold">Authoritative DB Price: ₹{prod.price.toLocaleString()}</span>
                         {selectedProduct.id === prod.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-gray-800/80 flex items-center justify-between">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(prod);
+                          }}
+                          className="rounded bg-indigo-950 hover:bg-indigo-900 px-2.5 py-1 text-[10px] text-indigo-200 border border-indigo-800 font-mono transition"
+                        >
+                          + Add to Cart
+                        </button>
+                        <span className="text-[10px] text-gray-500 font-mono">In Stock (100 units)</span>
                       </div>
                     </div>
                   ))}
@@ -830,18 +1028,58 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
                   </div>
                 </div>
 
-                <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
-                  <div>
-                    <label className="block font-medium text-gray-300 mb-1">Username Input Box (SQLi / Username Target):</label>
-                    <input
-                      type="text"
-                      value={loginUsername}
-                      onChange={(e) => setLoginUsername(e.target.value)}
-                      placeholder="e.g. admin or ' OR '1'='1"
-                      className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-white font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      required
-                    />
+                {authenticatedUser ? (
+                  <div className="rounded-xl border border-emerald-800/80 bg-emerald-950/20 p-5 space-y-4 font-mono text-xs">
+                    <div className="flex items-center justify-between border-b border-emerald-900/60 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-emerald-600 grid place-items-center text-white font-bold text-sm shadow-md">
+                          👤
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{authenticatedUser.username}</h4>
+                          <p className="text-[11px] text-emerald-400 font-bold">{authenticatedUser.role}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="rounded bg-red-950 hover:bg-red-900 px-3 py-1.5 text-red-300 border border-red-800 font-bold text-[11px] transition"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-[11px]">
+                      <div className="rounded-xl bg-black/60 p-3 border border-gray-800">
+                        <span className="text-gray-400 block text-[10px]">Email Address:</span>
+                        <span className="text-white font-bold">{authenticatedUser.email}</span>
+                      </div>
+                      <div className="rounded-xl bg-black/60 p-3 border border-gray-800">
+                        <span className="text-gray-400 block text-[10px]">Account Balance:</span>
+                        <span className="text-emerald-400 font-bold">₹{authenticatedUser.balance.toLocaleString()}</span>
+                      </div>
+                      <div className="rounded-xl bg-black/60 p-3 border border-gray-800">
+                        <span className="text-gray-400 block text-[10px]">SSN:</span>
+                        <span className="text-amber-300 font-bold">***-**-9918</span>
+                      </div>
+                      <div className="rounded-xl bg-black/60 p-3 border border-gray-800">
+                        <span className="text-gray-400 block text-[10px]">Stored Card:</span>
+                        <span className="text-indigo-300 font-bold">**** **** **** 8841</span>
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
+                    <div>
+                      <label className="block font-medium text-gray-300 mb-1">Username Input Box (SQLi / Username Target):</label>
+                      <input
+                        type="text"
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                        placeholder="e.g. admin or ' OR '1'='1"
+                        className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-white font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
 
                   <div>
                     <label className="block font-medium text-gray-300 mb-1">Password Input Box:</label>
@@ -872,6 +1110,7 @@ export const CyberMartCore: React.FC<CyberMartCoreProps> = ({
                     {accountLockRemaining > 0 ? `Locked Out (${accountLockRemaining}s)` : 'Authenticate User'}
                   </button>
                 </form>
+                )}
               </div>
 
               <div className="lg:col-span-6 rounded-2xl glass-card p-6 shadow-xl space-y-4 border border-gray-800">
