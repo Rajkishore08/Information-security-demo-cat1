@@ -105,3 +105,19 @@ export interface SoftwareLicense {
   tierPrice: number;
   allowedSeats: number;
 }
+
+export interface SecurityEvent {
+  id: string;
+  timestamp: string;
+  eventType: 'SQL Injection Bypass' | 'Brute Force Lockout' | 'Parameter Tampering Attempt' | 'IDN Phishing Warning' | 'Stored XSS Executed' | 'LFI Path Traversal';
+  status: 'VULNERABLE' | 'PATCHED';
+  details: string;
+}
+
+export interface SecurityControlStatus {
+  id: 'sqli' | 'brute_force' | 'parameter_tampering' | 'idn_homograph' | 'xss' | 'lfi';
+  name: string;
+  vulnerableImpl: string;
+  securityControl: string;
+  isPatched: boolean;
+}

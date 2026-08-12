@@ -1,865 +1,843 @@
 import React, { useState } from 'react';
 import { useSecurity } from '../../context/SecurityContext';
-import { INITIAL_FIRM_SECRETS, INITIAL_FIRM_NOTES } from '../../data/mockData';
-import type { FirmSecret, FirmNote, Order } from '../../types/security';
+import { URBANCART_PRODUCTS, INITIAL_SECURITY_EVENTS } from '../../data/mockData';
+import type { Product, Order, SecurityEvent } from '../../types/security';
 import { 
-  FolderLock, 
-  Key, 
-  Lock, 
-  Megaphone, 
-  Server, 
   ShoppingCart, 
-  Search, 
-  Send, 
-  Terminal, 
-  SlidersHorizontal,
+  Lock, 
+  Mail, 
+  MessageSquare, 
+  Activity, 
+  Server, 
+  SlidersHorizontal, 
   Maximize2, 
-  X,
-  Copy,
-  Check,
-  UserCheck,
-  Link,
-  Mail,
+  X, 
+  CheckCircle2, 
+  AlertTriangle, 
+  DollarSign, 
+  Award,
   Globe,
-  ShieldAlert
+  Terminal
 } from 'lucide-react';
 
 export const FullAppModule: React.FC = () => {
-  const { mode, addLog, addOrder } = useSecurity();
-  const [activeTab, setActiveTab] = useState<'secrets' | 'auth' | 'notices' | 'licenses' | 'diagnostics' | 'url-interp' | 'phishing'>('secrets');
+  const { mode, setMode, addLog, addOrder } = useSecurity();
+  const [activeTab, setActiveTab] = useState<'shop' | 'login' | 'inbox' | 'reviews' | 'admin' | 'diagnostics'>('shop');
   const [isStandaloneOpen, setIsStandaloneOpen] = useState<boolean>(false);
   const [isTestBenchOpen, setIsTestBenchOpen] = useState<boolean>(true);
 
-  // Authenticated User Session
-  const [sessionUser, setSessionUser] = useState<{ name: string; role: string; empId: number } | null>({
-    name: 'Dev Lead (Rohan)',
-    role: 'Developer',
-    empId: 104
+  // Security Controls State (Independent Toggles)
+  const [controls, setControls] = useState<Record<string, boolean>>({
+    sqli: mode === 'secure',
+    brute_force: mode === 'secure',
+    parameter_tampering: mode === 'secure',
+    idn_homograph: mode === 'secure',
+    xss: mode === 'secure',
+    lfi: mode === 'secure'
   });
 
-  // 1. Auth State (SQLi & Brute Force)
-  const [loginUser, setLoginUser] = useState<string>("' OR '1'='1");
-  const [loginPass, setLoginPass] = useState<string>('anything');
-  const [loginError, setLoginError] = useState<string | null>(null);
+  // Security Events Table State
+  const [events, setEvents] = useState<SecurityEvent[]>(INITIAL_SECURITY_EVENTS);
 
-  // 2. Secret Lookup State (IDOR & SQLi)
-  const [secretQueryId, setSecretQueryId] = useState<number>(999);
-  const [displayedSecret, setDisplayedSecret] = useState<FirmSecret | null>(INITIAL_FIRM_SECRETS[3]); // Restricted CTO Master Key
-  const [secretError, setSecretError] = useState<string | null>(null);
+  // Helper to log UrbanCart security event
+  const recordSecurityEvent = (eventType: SecurityEvent['eventType'], isPatched: boolean, details: string) => {
+    const newEvt: SecurityEvent = {
+      id: `evt-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      eventType,
+      status: isPatched ? 'PATCHED' : 'VULNERABLE',
+      details
+    };
+    setEvents((prev) => [newEvt, ...prev]);
 
-  // 3. Notice Board State (Stored XSS)
-  const [notes, setNotes] = useState<FirmNote[]>(INITIAL_FIRM_NOTES);
-  const [noteTopic, setNoteTopic] = useState<string>('API Key Rotation Warning');
-  const [noteContent, setNoteContent] = useState<string>('<script>alert("Vault Cookie Stolen: " + document.cookie)</script>');
-  const [activeXssAlert, setActiveXssAlert] = useState<string | null>(null);
-
-  // 4. Software License Store (Price Tampering)
-  const [selectedLicensePrice, setSelectedLicensePrice] = useState<number>(10);
-  const [lastLicenseOrder, setLastLicenseOrder] = useState<Order | null>(null);
-
-  // 5. Diagnostics & Log Viewer (LFI & Command Injection)
-  const [lfiPath, setLfiPath] = useState<string>('../../../../etc/passwd');
-  const [lfiOutput, setLfiOutput] = useState<string | null>(null);
-  const [pingHost, setPingHost] = useState<string>('8.8.8.8; cat /etc/passwd');
-  const [pingOutput, setPingOutput] = useState<string | null>(null);
-
-  // 6. URL Interpretation State
-  const [urlRoleParam, setUrlRoleParam] = useState<string>('CTO_Admin');
-  const [urlDebugParam, setUrlDebugParam] = useState<string>('1');
-  const [urlInterpResult, setUrlInterpResult] = useState<string | null>(null);
-
-  // 7. Phishing Portal State
-  const [phishingEmail, setPhishingEmail] = useState<string>('rohan.lead@apexsoft-firm.org');
-  const [phishingPass, setPhishingPass] = useState<string>('VaultP@ss2026!');
-  const [phishingDomain, setPhishingDomain] = useState<string>('http://apexsoft-firm-security-update.com/login');
-  const [harvestedCreds, setHarvestedCreds] = useState<{ email: string; pass: string; ip: string; time: string }[]>([
-    { email: 'dev.lead@apexsoft-firm.org', pass: 'DevMaster99!', ip: '192.168.1.104', time: '10:42 AM' }
-  ]);
-
-  const [copiedText, setCopiedText] = useState<string | null>(null);
-
-  const copyText = (txt: string) => {
-    navigator.clipboard.writeText(txt);
-    setCopiedText(txt);
-    setTimeout(() => setCopiedText(null), 2000);
+    addLog(
+      isPatched ? 'secure' : 'exploit',
+      `URBANCART [${eventType}]`,
+      `[${isPatched ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}] ${details}`,
+      undefined,
+      { eventType, status: isPatched ? 'PATCHED' : 'VULNERABLE' }
+    );
   };
 
-  // --- HANDLERS ---
+  // Toggle individual control
+  const toggleControl = (key: string) => {
+    setControls((prev) => {
+      const nextState = !prev[key];
+      recordSecurityEvent(
+        key === 'sqli' ? 'SQL Injection Bypass' :
+        key === 'brute_force' ? 'Brute Force Lockout' :
+        key === 'parameter_tampering' ? 'Parameter Tampering Attempt' : 'IDN Phishing Warning',
+        nextState,
+        `Demonstrator toggled ${key.toUpperCase()} control state to ${nextState ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}`
+      );
+      return { ...prev, [key]: nextState };
+    });
+  };
 
-  // Auth Handler
-  const handleAuth = (e: React.FormEvent) => {
+  // Sync with global mode toggle
+  const handleGlobalModeSync = (targetMode: 'vulnerable' | 'secure') => {
+    setMode(targetMode);
+    const isPatched = targetMode === 'secure';
+    setControls({
+      sqli: isPatched,
+      brute_force: isPatched,
+      parameter_tampering: isPatched,
+      idn_homograph: isPatched,
+      xss: isPatched,
+      lfi: isPatched
+    });
+  };
+
+  // Calculate Security Score (0 to 100%)
+  const patchedCount = Object.values(controls).filter(Boolean).length;
+  const totalControls = Object.keys(controls).length;
+  const securityScore = Math.round((patchedCount / totalControls) * 100);
+
+  // --- MODULE 1: SHOP STORE & CHECKOUT (Parameter Tampering) ---
+  const [selectedProduct, setSelectedProduct] = useState<Product>(URBANCART_PRODUCTS[0]); // Smartphone ₹3,499
+  const [clientSubmittedPrice, setClientSubmittedPrice] = useState<number>(1); // Modified to ₹1
+  const [checkoutQuantity, setCheckoutQuantity] = useState<number>(1);
+  const [lastCheckoutOrder, setLastCheckoutOrder] = useState<Order | null>(null);
+
+  const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError(null);
-
-    if (mode === 'vulnerable') {
-      const sql = `SELECT * FROM firm_users WHERE username = '${loginUser}' AND password = '${loginPass}';`;
-      addLog('vuln', 'FIRM VAULT AUTH', 'Executing dynamic SQL login query:', sql);
-
-      if (loginUser.includes("' OR '1'='1") || loginUser.includes("' OR 1=1")) {
-        setSessionUser({ name: 'CTO Root Admin', role: 'CTO Admin', empId: 999 });
-        addLog('exploit', 'SQLi EXPLOIT', '⚡ Authenticated as CTO Root Admin via SQL Injection bypass!');
-      } else if (loginUser === 'admin123' || loginUser === 'welcome') {
-        setSessionUser({ name: 'DevOps Lead', role: 'DevOps', empId: 102 });
-        addLog('exploit', 'BRUTE FORCE EXPLOIT', `⚡ Authenticated via password guessing attack!`);
-      } else {
-        setLoginError('Invalid login credentials.');
-      }
-    } else {
-      addLog('secure', 'FIRM VAULT AUTH', `Executing Prepared Statement lookup for "${loginUser}"`);
-      if (loginUser === 'admin' && loginPass === 'Secr3tP@ss') {
-        setSessionUser({ name: 'CTO Root Admin', role: 'CTO Admin', empId: 999 });
-        addLog('secure', 'FIRM VAULT AUTH', 'Authentication successful for exact string match.');
-      } else {
-        setLoginError('Authentication Failed: Prepared Statement rejected non-matching string input.');
-      }
-    }
-  };
-
-  // Secret Lookup Handler (IDOR)
-  const handleSecretLookup = (idToFetch: number) => {
-    setSecretQueryId(idToFetch);
-    setSecretError(null);
-
-    const secret = INITIAL_FIRM_SECRETS.find((s) => s.id === idToFetch);
-
-    if (mode === 'vulnerable') {
-      if (secret) {
-        setDisplayedSecret(secret);
-        addLog('vuln', 'VAULT SECRET IDOR', `Fetched secret ID ${idToFetch} without authorization verification.`);
-        if (secret.isConfidential) {
-          addLog('exploit', 'IDOR EXPLOIT', '⚡ UNLOCKED RESTRICTED CTO MASTER KEY via ?secret_id=999 tampering!');
-        }
-      } else {
-        setDisplayedSecret(null);
-      }
-    } else {
-      if (secret) {
-        if (secret.isConfidential && (!sessionUser || sessionUser.role !== 'CTO Admin')) {
-          setDisplayedSecret(null);
-          setSecretError(`HTTP 403 Forbidden: Secret ID ${idToFetch} is RESTRICTED to CTO Admin. Current role [${sessionUser ? sessionUser.role : 'Guest'}] is unauthorized.`);
-          addLog('secure', 'IDOR DEFENSE', `🔒 Access denied to restricted secret ID ${idToFetch}`);
-        } else {
-          setDisplayedSecret(secret);
-          addLog('secure', 'IDOR DEFENSE', `Verified authorization for secret ID ${idToFetch}`);
-        }
-      } else {
-        setDisplayedSecret(null);
-      }
-    }
-  };
-
-  // Notice Board Handler (Stored XSS)
-  const handlePostNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActiveXssAlert(null);
-
-    const containsScript = noteContent.includes('<script>') || noteContent.includes('onerror=');
-
-    if (mode === 'vulnerable') {
-      const newNote: FirmNote = {
-        id: `note-${Date.now()}`,
-        author: sessionUser ? sessionUser.name : 'Anonymous Engineer',
-        topic: noteTopic || 'General Announcement',
-        content: noteContent,
-        createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
-      };
-      setNotes((prev) => [newNote, ...prev]);
-      addLog('vuln', 'FIRM NOTE XSS', 'Unsanitized HTML posted to Developer Board:', noteContent);
-
-      if (containsScript) {
-        addLog('exploit', 'STORED XSS EXPLOIT', '⚡ Stored XSS script executed on Developer Board!');
-        setActiveXssAlert(`⚡ STORED XSS POPUP TRIGGERED!\nExecuted JavaScript in session:\n"${noteContent}"`);
-      }
-    } else {
-      const safe = noteContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const newNote: FirmNote = {
-        id: `note-${Date.now()}`,
-        author: sessionUser ? sessionUser.name : 'Anonymous Engineer',
-        topic: noteTopic || 'General Announcement',
-        content: safe,
-        createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
-      };
-      setNotes((prev) => [newNote, ...prev]);
-      addLog('secure', 'FIRM NOTE XSS DEFENSE', 'Content sanitized via htmlspecialchars().');
-    }
-
-    setNoteTopic('');
-    setNoteContent('');
-  };
-
-  // License Order Handler (Price Tampering)
-  const handleLicenseCheckout = (e: React.FormEvent) => {
-    e.preventDefault();
-    const verifiedPrice = 120000; // SAST Suite Original Price
-    const charged = mode === 'vulnerable' ? selectedLicensePrice : verifiedPrice;
+    const isPatched = controls.parameter_tampering;
+    const dbAuthoritativePrice = selectedProduct.price;
+    const finalUnitCharged = isPatched ? dbAuthoritativePrice : clientSubmittedPrice;
+    const totalCharged = finalUnitCharged * checkoutQuantity;
 
     const order: Order = {
-      orderId: `FIRM-LIC-${Date.now().toString().slice(-6)}`,
-      productName: 'ApexSoft Security Audit & SAST Suite',
-      quantity: 1,
-      unitPriceSubmitted: selectedLicensePrice,
-      unitPriceVerified: verifiedPrice,
-      totalPaid: charged,
-      status: charged < verifiedPrice ? 'PRICE_TAMPERED' : 'SUCCESS',
+      orderId: `UC-${Date.now().toString().slice(-6)}`,
+      productName: selectedProduct.name,
+      quantity: checkoutQuantity,
+      unitPriceSubmitted: clientSubmittedPrice,
+      unitPriceVerified: dbAuthoritativePrice,
+      totalPaid: totalCharged,
+      status: (!isPatched && clientSubmittedPrice < dbAuthoritativePrice) ? 'PRICE_TAMPERED' : 'SUCCESS',
       timestamp: new Date().toLocaleTimeString()
     };
 
     addOrder(order);
-    setLastLicenseOrder(order);
+    setLastCheckoutOrder(order);
 
-    if (mode === 'vulnerable') {
-      addLog('vuln', 'LICENSE PRICE TAMPERING', `Processed license purchase at client-submitted price ₹${selectedLicensePrice}`);
-      if (charged < verifiedPrice) {
-        addLog('exploit', 'PRICE TAMPERING EXPLOIT', `⚡ Purchased ₹1,20,000 SAST Suite for ₹${charged}!`);
-      }
+    if (!isPatched && clientSubmittedPrice < dbAuthoritativePrice) {
+      recordSecurityEvent(
+        'Parameter Tampering Attempt',
+        false,
+        `Vulnerable Checkout: Accepted client-submitted price ₹${clientSubmittedPrice} for ${selectedProduct.name} (DB Price: ₹${dbAuthoritativePrice.toLocaleString()})`
+      );
     } else {
-      addLog('secure', 'LICENSE PRICE DEFENSE', `Server overridden client price input ₹${selectedLicensePrice} with DB price ₹${verifiedPrice.toLocaleString()}`);
+      recordSecurityEvent(
+        'Parameter Tampering Attempt',
+        true,
+        `Patched Checkout: Server retrieved authoritative price ₹${dbAuthoritativePrice.toLocaleString()} from SQLite lab.db for ${selectedProduct.name}`
+      );
     }
   };
 
-  // LFI Handler
-  const handleLfiRead = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'vulnerable') {
-      const rawCode = `include("/var/www/firm_vault/" . "${lfiPath}");`;
-      addLog('vuln', 'FIRM LFI', 'Unsafe include() execution:', rawCode);
+  // --- MODULE 2: LOGIN AUTHENTICATION (SQL Injection & Brute Force) ---
+  const [loginUsername, setLoginUsername] = useState<string>("' OR '1'='1");
+  const [loginPassword, setLoginPassword] = useState<string>('anything');
+  const [failedAttemptsCount, setFailedAttemptsCount] = useState<number>(0);
+  const [accountLockRemaining, setAccountLockRemaining] = useState<number>(0);
+  const [authStatusMessage, setAuthStatusMessage] = useState<{ type: 'success' | 'error' | 'lockout'; msg: string } | null>(null);
 
-      if (lfiPath.includes('..')) {
-        const simulatedPasswd = `root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/bin/bash\napexsoft_cto:x:1001:1001:ApexSoft CTO Admin,,,:/home/apexsoft_cto:/bin/bash`;
-        setLfiOutput(simulatedPasswd);
-        addLog('exploit', 'LFI EXPLOIT', '⚡ Path traversal read system /etc/passwd file!', simulatedPasswd);
-      } else {
-        setLfiOutput(`[File Content of ${lfiPath}]: Firm log file content.`);
-      }
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthStatusMessage(null);
+
+    // Check account lockout
+    if (controls.brute_force && accountLockRemaining > 0) {
+      setAuthStatusMessage({
+        type: 'lockout',
+        msg: `⚠ ACCOUNT LOCKED: 3 failed attempts exceeded. Temporary cooldown active (${accountLockRemaining}s remaining).`
+      });
+      return;
+    }
+
+    const isSqliPatched = controls.sqli;
+    const isBrutePatched = controls.brute_force;
+
+    // Check SQLi Bypass
+    const isSqliPayload = loginUsername.includes("' OR '1'='1") || loginUsername.includes("' OR 1=1");
+
+    if (!isSqliPatched && isSqliPayload) {
+      setAuthStatusMessage({
+        type: 'success',
+        msg: '⚡ AUTHENTICATION SUCCESSFUL: Dynamic SQL query evaluated to TRUE! Logged in as UrbanCart System Administrator.'
+      });
+      recordSecurityEvent('SQL Injection Bypass', false, `SQL Injection Bypass triggered on /login endpoint: username="${loginUsername}"`);
+      return;
+    }
+
+    // Check Credential Verification
+    if (loginUsername === 'admin' && loginPassword === 'admin123') {
+      setFailedAttemptsCount(0);
+      setAuthStatusMessage({ type: 'success', msg: 'AUTHENTICATION SUCCESSFUL: Valid credentials provided.' });
+      recordSecurityEvent('SQL Injection Bypass', isSqliPatched, 'Successful login with valid admin credentials.');
     } else {
-      if (lfiPath.includes('..')) {
-        setLfiOutput(`ERROR: Path traversal sequence detected in filename "${lfiPath}". Access denied by basename() filter.`);
-        addLog('secure', 'LFI DEFENSE', `🔒 LFI attack blocked by basename() filter.`);
+      // Failed login attempt
+      const newFailedCount = failedAttemptsCount + 1;
+      setFailedAttemptsCount(newFailedCount);
+
+      if (isBrutePatched && newFailedCount >= 3) {
+        setAccountLockRemaining(30);
+        setAuthStatusMessage({
+          type: 'lockout',
+          msg: '🔒 ACCOUNT LOCKED: Maximum 3 failed attempts reached. Cooldown timer set to 30 seconds.'
+        });
+        recordSecurityEvent('Brute Force Lockout', true, `Brute force threshold reached (3 attempts). Account locked for 30s.`);
+
+        // Countdown timer
+        const timer = setInterval(() => {
+          setAccountLockRemaining((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              setFailedAttemptsCount(0);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
-        setLfiOutput(`[File Content of ${lfiPath}]: Safe file load.`);
+        setAuthStatusMessage({
+          type: 'error',
+          msg: `Invalid username or password. ${isBrutePatched ? `Failed attempts: ${newFailedCount} / 3.` : 'Unlimited attempts allowed.'}`
+        });
+        recordSecurityEvent('Brute Force Lockout', isBrutePatched, `Failed login attempt #${newFailedCount} for user "${loginUsername}".`);
       }
     }
   };
 
-  // Command Injection Handler
-  const handlePingExec = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'vulnerable') {
-      const cmd = `ping -c 2 ${pingHost}`;
-      addLog('vuln', 'COMMAND INJECTION', 'Executing raw shell command:', cmd);
+  // --- MODULE 3: INBOX & IDN HOMOGRAPH PHISHING ---
+  const [phishingDomain] = useState<string>('http://urbancаrt.com/verify?account_id=9918'); // Cyrillic 'а'
+  const [punycodeDomain] = useState<string>('http://xn--urbancrt-8ya.com/verify?account_id=9918');
+  const [showPhishingWarning, setShowPhishingWarning] = useState<boolean>(false);
 
-      if (pingHost.includes(';') || pingHost.includes('|') || pingHost.includes('&')) {
-        const out = `PING 8.8.8.8 (8.8.8.8): 56 data bytes\n64 bytes from 8.8.8.8: icmp_seq=0 ttl=117 time=14.2 ms\n\n--- Executing Secondary Injected Command: cat /etc/passwd ---\nroot:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/bin/bash\napexsoft_admin:x:1001:1001:ApexSoft System Admin,,,:/home/apexsoft_admin:/bin/bash`;
+  const handlePhishingLinkClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const isPatched = controls.idn_homograph;
+
+    if (isPatched) {
+      setShowPhishingWarning(true);
+      recordSecurityEvent(
+        'IDN Phishing Warning',
+        true,
+        `IDN Homograph Protection: Mixed script Cyrillic domain detected (${phishingDomain}). Punycode: ${punycodeDomain}`
+      );
+    } else {
+      setShowPhishingWarning(false);
+      recordSecurityEvent(
+        'IDN Phishing Warning',
+        false,
+        `Vulnerable Mode: User clicked unverified Cyrillic homograph link without warning banner.`
+      );
+      alert(`⚠️ VULNERABLE MODE: Navigated to spoofed phishing domain "${phishingDomain}" without warning!`);
+    }
+  };
+
+  // --- MODULE 4: CUSTOMER REVIEWS (Stored XSS) ---
+  const [reviewsList, setReviewsList] = useState<{ id: string; author: string; text: string }[]>([
+    { id: '1', author: 'Rahul M.', text: 'Fast delivery on Smartphone Pro Max! Highly recommended.' },
+    { id: '2', author: 'Ananya S.', text: 'Headphones noise cancellation works perfectly for video calls.' }
+  ]);
+  const [newReviewText, setNewReviewText] = useState<string>('<script>alert("Stored XSS Executed! Cookie: " + document.cookie)</script>');
+  const [xssTriggerAlert, setXssTriggerAlert] = useState<string | null>(null);
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setXssTriggerAlert(null);
+    const isPatched = controls.xss;
+    const containsScript = newReviewText.includes('<script>') || newReviewText.includes('onerror=');
+
+    if (!isPatched) {
+      setReviewsList((prev) => [{ id: `rev-${Date.now()}`, author: 'Anonymous Buyer', text: newReviewText }, ...prev]);
+      if (containsScript) {
+        setXssTriggerAlert(`⚡ STORED XSS POPUP TRIGGERED!\nExecuted script:\n"${newReviewText}"`);
+        recordSecurityEvent('Stored XSS Executed', false, `Unsanitized HTML rendered into DOM: ${newReviewText}`);
+      }
+    } else {
+      const safe = newReviewText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      setReviewsList((prev) => [{ id: `rev-${Date.now()}`, author: 'Verified Buyer 🟢', text: safe }, ...prev]);
+      recordSecurityEvent('Stored XSS Executed', true, `HTML sanitized via htmlspecialchars() entity encoding.`);
+    }
+    setNewReviewText('');
+  };
+
+  // --- MODULE 5: DIAGNOSTICS & LFI VIEWER ---
+  const [lfiFile, setLfiFile] = useState<string>('../../../../etc/passwd');
+  const [lfiOutput, setLfiOutput] = useState<string | null>(null);
+  const [pingTarget, setPingTarget] = useState<string>('8.8.8.8; cat /etc/passwd');
+  const [pingOutput, setPingOutput] = useState<string | null>(null);
+
+  const handleLfiExecute = (e: React.FormEvent) => {
+    e.preventDefault();
+    const isPatched = controls.lfi;
+
+    if (!isPatched) {
+      if (lfiFile.includes('..')) {
+        const out = `root:x:0:0:root:/root:/bin/bash\nurbancart_db_user:x:1001:1001:UrbanCart DB Master Account,,,:/var/www/urbancart:/bin/bash\nsqlite3_lab:x:1002:1002:Lab Database Account,,,:/home/lab:/bin/bash`;
+        setLfiOutput(out);
+        recordSecurityEvent('LFI Path Traversal', false, `Unsafe include() executed reading /etc/passwd: ${lfiFile}`);
+      } else {
+        setLfiOutput(`[File Content of ${lfiFile}]: UrbanCart log output.`);
+      }
+    } else {
+      if (lfiFile.includes('..')) {
+        setLfiOutput(`ERROR 403: Path traversal sequence ".." detected in file path "${lfiFile}". Rejected by basename() sanitization filter.`);
+        recordSecurityEvent('LFI Path Traversal', true, `Path traversal attempt blocked by basename() whitelist filter.`);
+      } else {
+        setLfiOutput(`[File Content of ${lfiFile}]: Safe file load.`);
+      }
+    }
+  };
+
+  const handlePingExecute = (e: React.FormEvent) => {
+    e.preventDefault();
+    const isPatched = controls.lfi;
+
+    if (!isPatched) {
+      if (pingTarget.includes(';') || pingTarget.includes('|') || pingTarget.includes('&')) {
+        const out = `PING 8.8.8.8 (8.8.8.8): 56 data bytes\n64 bytes from 8.8.8.8: icmp_seq=0 ttl=117 time=14.2 ms\n\n--- Executing Secondary Injected Shell Command: cat /etc/passwd ---\nroot:x:0:0:root:/root:/bin/bash\nwww-data:x:33:33:www-data:/var/www:/bin/bash`;
         setPingOutput(out);
-        addLog('exploit', 'COMMAND INJECTION EXPLOIT', '⚡ OS Command Injection read /etc/passwd system files!', out);
+        recordSecurityEvent('LFI Path Traversal', false, `Command Injection executed: ${pingTarget}`);
       } else {
-        setPingOutput(`PING ${pingHost} (${pingHost}): 56 data bytes\n64 bytes from ${pingHost}: icmp_seq=0 ttl=117 time=12.4 ms\n--- ${pingHost} ping statistics ---\n1 packets transmitted, 1 packets received, 0.0% packet loss`);
+        setPingOutput(`PING ${pingTarget} (${pingTarget}): 56 data bytes\n64 bytes from ${pingTarget}: icmp_seq=0 ttl=117 time=12.4 ms`);
       }
     } else {
-      const isValidIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(pingHost.trim());
+      const isValidIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(pingTarget.trim());
       if (!isValidIp) {
-        setPingOutput(`ERROR: Host parameter "${pingHost}" rejected. Failed IP format validation (FILTER_VALIDATE_IP). Command execution blocked.`);
-        addLog('secure', 'COMMAND INJECTION DEFENSE', `🔒 Command injection attempt blocked by IP validation filter.`);
+        setPingOutput(`ERROR: Host parameter "${pingTarget}" failed FILTER_VALIDATE_IP check. Command execution blocked.`);
+        recordSecurityEvent('LFI Path Traversal', true, `Command injection attempt blocked by IP format validation filter.`);
       } else {
-        setPingOutput(`PING ${pingHost} (${pingHost}): 56 data bytes\n64 bytes from ${pingHost}: icmp_seq=0 ttl=117 time=12.4 ms\n--- ${pingHost} ping statistics ---\n1 packets transmitted, 1 packets received, 0.0% packet loss`);
+        setPingOutput(`PING ${pingTarget} (${pingTarget}): 56 data bytes\n64 bytes from ${pingTarget}: icmp_seq=0 ttl=117 time=12.4 ms`);
       }
-    }
-  };
-
-  // URL Interpretation Handler
-  const handleUrlInterp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'vulnerable') {
-      if (urlRoleParam === 'CTO_Admin' || urlDebugParam === '1') {
-        setSessionUser({ name: 'CTO Root Admin (URL Override)', role: 'CTO Admin', empId: 999 });
-        setUrlInterpResult(`ACCESS GRANTED: URL parameter ?role=${urlRoleParam}&debug=${urlDebugParam} trusted by server! Privilege escalated to CTO Admin.`);
-        addLog('exploit', 'URL INTERPRETATION EXPLOIT', `⚡ Elevated user privileges to CTO Admin via URL parameter override ?role=${urlRoleParam}`);
-      } else {
-        setUrlInterpResult(`Role evaluated to ${urlRoleParam}. Standard developer access.`);
-      }
-    } else {
-      setUrlInterpResult(`HTTP 403 Forbidden: Client URL parameters ?role=${urlRoleParam} ignored. Server enforces validated session token.`);
-      addLog('secure', 'URL INTERPRETATION DEFENSE', `🔒 Replaced untrusted $_GET['role'] parameter with server session authentication.`);
-    }
-  };
-
-  // Phishing Handler
-  const handlePhishingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'vulnerable') {
-      const newHarvested = {
-        email: phishingEmail,
-        pass: phishingPass,
-        ip: '192.168.1.108',
-        time: new Date().toLocaleTimeString()
-      };
-      setHarvestedCreds((prev) => [newHarvested, ...prev]);
-      addLog('vuln', 'PHISHING HARVESTER', `Captured credentials on fake portal [${phishingDomain}]: Email=${phishingEmail}`);
-      addLog('exploit', 'PHISHING EXPLOIT', `⚡ Victim submitted credentials to spoofed domain ${phishingDomain}! Password: ${phishingPass}`);
-    } else {
-      addLog('secure', 'PHISHING DEFENSE', `🔒 FIDO2 WebAuthn origin binding blocked credential submission to unapproved domain: ${phishingDomain}`);
-      alert(`🔒 SECURITY DEFENSE: FIDO2 / WebAuthn Hardware Token blocked authentication on untrusted phishing domain "${phishingDomain}". Real Domain: "https://apexsoft-firm.org"`);
     }
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Firm Vault App Header Bar */}
-      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4 sm:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-red-600 to-purple-700 text-white shadow-lg">
-            <FolderLock className="h-6 w-6" />
+    <div className="space-y-6 font-sans text-gray-100">
+      {/* URBANCART BRAND HEADER & SECURITY SCORECARD */}
+      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4 sm:p-6 shadow-2xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30">
+              <ShoppingCart className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                URBANCART E-Commerce Security Laboratory
+                <span className="rounded bg-indigo-950 px-2 py-0.5 text-xs text-indigo-400 border border-indigo-800 font-mono font-bold">
+                  lab.db SQLite Backend
+                </span>
+              </h2>
+              <p className="text-xs text-gray-400">Interactive Security Vulnerability Demonstration & Defense Platform</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              ApexSoft Developer Credential & Secrets Vault
-              <span className="rounded bg-red-950 px-2 py-0.5 text-xs text-red-400 border border-red-800 font-mono font-bold">
-                REAL-TIME TARGET
+
+          {/* Global Mode Sync Buttons & Security Score */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl bg-gray-900 px-3.5 py-1.5 border border-gray-800 text-xs">
+              <Award className="h-4 w-4 text-indigo-400" />
+              <span className="text-gray-300">Security Score:</span>
+              <span className={`font-mono font-bold text-sm ${securityScore === 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {securityScore}% ({patchedCount}/{totalControls} Patched)
               </span>
-            </h2>
-            <p className="text-xs text-gray-400">Software Firm Enterprise Vault with All Exploit Vectors Exposed</p>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-gray-900 p-1 rounded-xl border border-gray-800">
+              <button
+                onClick={() => handleGlobalModeSync('vulnerable')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                  mode === 'vulnerable' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Vulnerable Mode 🔴
+              </button>
+              <button
+                onClick={() => handleGlobalModeSync('secure')}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                  mode === 'secure' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Patched Mode 🟢
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsStandaloneOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-bold text-white shadow-lg transition"
+            >
+              <Maximize2 className="h-4 w-4" />
+              <span>Standalone Window ↗️</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {sessionUser ? (
-            <div className="flex items-center gap-2 rounded-xl bg-gray-900 px-3 py-1.5 border border-gray-800 text-xs">
-              <UserCheck className="h-4 w-4 text-emerald-400" />
-              <div>
-                <span className="font-bold text-white block leading-tight">{sessionUser.name}</span>
-                <span className="text-[10px] text-purple-300 font-mono">{sessionUser.role}</span>
+        {/* ATTACK WORKBENCH & PRESET BAR */}
+        <div className="rounded-xl border border-indigo-900/60 bg-gray-900/90 shadow-xl overflow-hidden">
+          <button
+            onClick={() => setIsTestBenchOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between bg-indigo-950/80 px-4 py-2.5 border-b border-indigo-900/60 text-left transition hover:bg-indigo-900/60"
+          >
+            <div className="flex items-center gap-2 text-indigo-200 font-bold text-xs">
+              <SlidersHorizontal className="h-4 w-4 text-indigo-400" />
+              <span>⚡ Quick Attack Payload Presets (UrbanCart Security Lab)</span>
+            </div>
+            <span className="text-xs text-indigo-300">{isTestBenchOpen ? 'Hide Presets' : 'Show Presets'}</span>
+          </button>
+
+          {isTestBenchOpen && (
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-950/80 text-xs">
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-2.5 space-y-1.5">
+                <span className="font-bold text-blue-400 flex items-center gap-1">
+                  <Lock className="h-3.5 w-3.5" /> 1. SQL Injection
+                </span>
+                <button
+                  onClick={() => {
+                    setLoginUsername("' OR '1'='1");
+                    setLoginPassword("anything");
+                    setActiveTab('login');
+                  }}
+                  className="w-full rounded bg-blue-950 hover:bg-blue-900 py-1 text-[11px] text-blue-200 border border-blue-800 transition"
+                >
+                  Preset: ' OR '1'='1
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-2.5 space-y-1.5">
+                <span className="font-bold text-emerald-400 flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5" /> 2. Parameter Tampering
+                </span>
+                <button
+                  onClick={() => {
+                    setClientSubmittedPrice(1);
+                    setActiveTab('shop');
+                  }}
+                  className="w-full rounded bg-emerald-950 hover:bg-emerald-900 py-1 text-[11px] text-emerald-200 border border-emerald-800 transition"
+                >
+                  Tamper Price: ₹3,499 → ₹1
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-2.5 space-y-1.5">
+                <span className="font-bold text-amber-400 flex items-center gap-1">
+                  <Globe className="h-3.5 w-3.5" /> 3. IDN Homograph
+                </span>
+                <button
+                  onClick={() => {
+                    setActiveTab('inbox');
+                  }}
+                  className="w-full rounded bg-amber-950 hover:bg-amber-900 py-1 text-[11px] text-amber-200 border border-amber-800 transition"
+                >
+                  Click Cyrillic Homograph Link
+                </button>
+              </div>
+
+              <div className="rounded-lg border border-gray-800 bg-gray-900 p-2.5 space-y-1.5">
+                <span className="font-bold text-purple-400 flex items-center gap-1">
+                  <MessageSquare className="h-3.5 w-3.5" /> 4. Stored XSS Review
+                </span>
+                <button
+                  onClick={() => {
+                    setNewReviewText('<script>alert("UrbanCart XSS Executed!")</script>');
+                    setActiveTab('reviews');
+                  }}
+                  className="w-full rounded bg-purple-950 hover:bg-purple-900 py-1 text-[11px] text-purple-200 border border-purple-800 transition"
+                >
+                  Inject &lt;script&gt; Cookie Alert
+                </button>
               </div>
             </div>
-          ) : (
-            <span className="text-xs text-gray-500 font-mono">Session: Unauthenticated Guest</span>
           )}
-
-          <button
-            onClick={() => setIsStandaloneOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 hover:from-red-500 hover:to-purple-500 px-4 py-2 text-xs font-bold text-white shadow-lg transition"
-          >
-            <Maximize2 className="h-4 w-4" />
-            <span>Standalone Window ↗️</span>
-          </button>
         </div>
       </div>
 
-      {/* QUICK ATTACK WORKBENCH & PAYLOAD PRESET TEST BENCH */}
-      <div className="rounded-2xl border border-red-900/60 bg-gray-900/90 shadow-2xl overflow-hidden">
-        <button
-          onClick={() => setIsTestBenchOpen((prev) => !prev)}
-          className="w-full flex items-center justify-between bg-red-950/80 px-4 sm:px-6 py-3 border-b border-red-900/60 text-left transition hover:bg-red-900/60"
-        >
-          <div className="flex items-center gap-2 text-red-200 font-bold text-xs sm:text-sm">
-            <SlidersHorizontal className="h-4 w-4 text-red-400" />
-            <span>⚡ Interactive Attack Test Bench & Quick Payload Injection Bar</span>
-            <span className="rounded bg-red-900 px-2 py-0.5 text-[10px] text-red-300 border border-red-700 font-mono font-bold">
-              Software Firm Vault Target
-            </span>
-          </div>
-          <span className="text-xs text-red-300">{isTestBenchOpen ? 'Collapse' : 'Expand'}</span>
-        </button>
-
-        {isTestBenchOpen && (
-          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-950/80 text-xs">
-            {/* Box 1: SQLi Login */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
-              <span className="font-bold text-blue-400 flex items-center gap-1">
-                <Lock className="h-3.5 w-3.5" /> 1. SQLi Auth Bypass
-              </span>
-              <button
-                onClick={() => {
-                  setLoginUser("' OR '1'='1");
-                  setLoginPass("anything");
-                  setActiveTab('auth');
-                }}
-                className="w-full rounded bg-blue-950 hover:bg-blue-900 py-1 text-[11px] text-blue-200 border border-blue-800 transition"
-              >
-                Preset: ' OR '1'='1
-              </button>
-            </div>
-
-            {/* Box 2: URL Interpretation */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
-              <span className="font-bold text-cyan-400 flex items-center gap-1">
-                <Link className="h-3.5 w-3.5" /> 2. URL Interpretation
-              </span>
-              <button
-                onClick={() => {
-                  setUrlRoleParam('CTO_Admin');
-                  setUrlDebugParam('1');
-                  setActiveTab('url-interp');
-                }}
-                className="w-full rounded bg-cyan-950 hover:bg-cyan-900 py-1 text-[11px] text-cyan-200 border border-cyan-800 transition"
-              >
-                Preset: ?role=CTO_Admin
-              </button>
-            </div>
-
-            {/* Box 3: Phishing Simulator */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <Mail className="h-3.5 w-3.5" /> 3. Phishing Simulator
-              </span>
-              <button
-                onClick={() => {
-                  setPhishingEmail("dev.lead@apexsoft-firm.org");
-                  setActiveTab('phishing');
-                }}
-                className="w-full rounded bg-amber-950 hover:bg-amber-900 py-1 text-[11px] text-amber-200 border border-amber-800 transition"
-              >
-                Preset: Spoofed Phishing Domain
-              </button>
-            </div>
-
-            {/* Box 4: LFI & Command Injection */}
-            <div className="rounded-xl border border-gray-800 bg-gray-900 p-3 space-y-1.5">
-              <span className="font-bold text-red-400 flex items-center gap-1">
-                <Server className="h-3.5 w-3.5" /> 4. LFI / RCE Read /etc/passwd
-              </span>
-              <button
-                onClick={() => {
-                  setLfiPath("../../../../etc/passwd");
-                  setActiveTab('diagnostics');
-                }}
-                className="w-full rounded bg-red-950 hover:bg-red-900 py-1 text-[11px] text-red-200 border border-red-800 transition"
-              >
-                Preset: ../../../../etc/passwd
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* REAL FIRM VAULT APPLICATION NAVIGATION TABS */}
+      {/* NAVIGATION TABS */}
       <div className="flex border-b border-gray-800 bg-gray-900/60 p-2 gap-2 rounded-2xl overflow-x-auto">
         <button
-          onClick={() => setActiveTab('secrets')}
+          onClick={() => setActiveTab('shop')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'secrets'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-          }`}
-        >
-          <Key className="h-4 w-4" />
-          <span>Firm Secrets & API Keys</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('url-interp')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'url-interp'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-          }`}
-        >
-          <Link className="h-4 w-4" />
-          <span>URL Interpretation</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('phishing')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'phishing'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-          }`}
-        >
-          <Mail className="h-4 w-4" />
-          <span>Phishing Website Portal</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('auth')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'auth'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-          }`}
-        >
-          <Lock className="h-4 w-4" />
-          <span>Engineer Vault Auth</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('notices')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'notices'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-          }`}
-        >
-          <Megaphone className="h-4 w-4" />
-          <span>Developer Board</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('licenses')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'licenses'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+            activeTab === 'shop' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
           }`}
         >
           <ShoppingCart className="h-4 w-4" />
-          <span>Software Licenses</span>
+          <span>Shop Store & Checkout</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('login')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'login' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Lock className="h-4 w-4" />
+          <span>Login & Brute-Force</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('inbox')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'inbox' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Mail className="h-4 w-4" />
+          <span>Inbox & IDN Phishing</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('reviews')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'reviews' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <MessageSquare className="h-4 w-4" />
+          <span>Product Reviews (XSS)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
+            activeTab === 'admin' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+          }`}
+        >
+          <Activity className="h-4 w-4 text-emerald-400" />
+          <span>Security Center & Event Log</span>
         </button>
 
         <button
           onClick={() => setActiveTab('diagnostics')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition ${
-            activeTab === 'diagnostics'
-              ? 'bg-red-600 text-white shadow-md'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+            activeTab === 'diagnostics' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
           }`}
         >
-          <Server className="h-4 w-4" />
-          <span>LFI & Server Diagnostics</span>
+          <Server className="h-4 w-4 text-red-400" />
+          <span>Diagnostics & LFI</span>
         </button>
       </div>
 
-      {/* VIEW: URL INTERPRETATION */}
-      {activeTab === 'url-interp' && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <div className="border-b border-gray-800 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Link className="h-5 w-5 text-cyan-400" />
-                URL Interpretation & Parameter Manipulation Simulator
-              </h3>
-              <p className="text-xs text-gray-400">Manipulate HTTP GET address bar parameters to alter user role context and debug modes</p>
+      {/* TAB 1: SHOP STORE & CHECKOUT (PARAMETER TAMPERING) */}
+      {activeTab === 'shop' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 space-y-4">
+            <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-indigo-400" />
+              UrbanCart Product Catalog
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {URBANCART_PRODUCTS.map((prod) => (
+                <div
+                  key={prod.id}
+                  onClick={() => {
+                    setSelectedProduct(prod);
+                    setClientSubmittedPrice(1);
+                  }}
+                  className={`rounded-2xl border p-4 cursor-pointer transition ${
+                    selectedProduct.id === prod.id
+                      ? 'border-indigo-500 bg-indigo-950/50 shadow-lg ring-1 ring-indigo-500'
+                      : 'border-gray-800 bg-gray-900/60 hover:bg-gray-800/60'
+                  }`}
+                >
+                  <img src={prod.image} alt={prod.name} className="h-32 w-full object-cover rounded-xl mb-3" />
+                  <h4 className="text-xs font-bold text-white mb-1">{prod.name}</h4>
+                  <p className="text-[11px] text-gray-400 mb-2">{prod.description}</p>
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-emerald-400 font-bold">Authoritative DB Price: ₹{prod.price.toLocaleString()}</span>
+                    {selectedProduct.id === prod.id && <CheckCircle2 className="h-4 w-4 text-indigo-400" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4 h-fit">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white font-mono">Checkout & Price Validation</h3>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                controls.parameter_tampering ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'
+              }`}>
+                {controls.parameter_tampering ? 'PATCHED (SQLite Validation)' : 'VULNERABLE (Client Price Trusted)'}
+              </span>
             </div>
 
-            {/* Address Bar Simulator */}
-            <div className="flex items-center gap-2 bg-black p-3 rounded-xl border border-gray-800 font-mono text-xs text-cyan-300">
-              <span className="text-gray-500 font-bold">ADDRESS BAR:</span>
-              <span className="text-gray-300">https://vault.apexsoft-firm.org/app</span>
-              <span className="text-amber-300 font-bold">?role={urlRoleParam}&debug={urlDebugParam}</span>
-            </div>
+            <form onSubmit={handleCheckoutSubmit} className="space-y-4 text-xs font-mono">
+              <div className="rounded-xl bg-black p-3 space-y-1 text-gray-300">
+                <p>Selected Product: <strong className="text-white">{selectedProduct.name}</strong></p>
+                <p>SQLite lab.db Price: <strong className="text-emerald-400">₹{selectedProduct.price.toLocaleString()}</strong></p>
+              </div>
 
-            <form onSubmit={handleUrlInterp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {!controls.parameter_tampering ? (
+                <div className="rounded-xl bg-red-950/40 p-3 border border-red-800 space-y-2">
+                  <label className="block text-red-300 font-bold">
+                    Vulnerable Mode: Client-Submitted Price Parameter Input Box:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      value={clientSubmittedPrice}
+                      onChange={(e) => setClientSubmittedPrice(parseFloat(e.target.value) || 0)}
+                      className="w-full rounded-lg bg-gray-950 px-3 py-1.5 text-red-300 font-bold border border-red-700 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-[10px] text-red-400">⚠️ Backend will process transaction at client-submitted price!</p>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-emerald-950/40 p-3 border border-emerald-800 text-emerald-200 text-[11px]">
+                  🟢 Patched Mode: Client-submitted price is ignored. Backend retrieves authoritative price from SQLite `products` table.
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">Altered URL ?role= Parameter Input Box:</label>
-                <select
-                  value={urlRoleParam}
-                  onChange={(e) => setUrlRoleParam(e.target.value)}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-amber-300 font-mono font-bold"
-                >
-                  <option value="guest">guest (Standard Guest)</option>
-                  <option value="Developer">Developer (Standard Dev)</option>
-                  <option value="CTO_Admin">CTO_Admin (Elevated Root Privileges)</option>
-                </select>
+                <label className="block text-gray-400 mb-1">Quantity:</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={checkoutQuantity}
+                  onChange={(e) => setCheckoutQuantity(parseInt(e.target.value, 10) || 1)}
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-white font-mono"
+                />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">Altered URL ?debug= Parameter Input Box:</label>
-                <select
-                  value={urlDebugParam}
-                  onChange={(e) => setUrlDebugParam(e.target.value)}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-amber-300 font-mono font-bold"
-                >
-                  <option value="0">0 (Debug Disabled)</option>
-                  <option value="1">1 (Debug Console Enabled)</option>
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-500 py-3 text-xs font-bold text-white shadow-lg transition"
-                >
-                  Send Request with Manipulated URL Parameters
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-bold text-white shadow-lg transition"
+              >
+                Submit Checkout Request
+              </button>
             </form>
 
-            {urlInterpResult && (
-              <div className={`rounded-xl border p-4 font-mono text-xs ${
-                mode === 'vulnerable' ? 'border-red-800 bg-red-950/40 text-red-200' : 'border-emerald-800 bg-emerald-950/40 text-emerald-200'
+            {lastCheckoutOrder && (
+              <div className={`rounded-xl border p-4 font-mono text-xs space-y-1.5 ${
+                lastCheckoutOrder.status === 'PRICE_TAMPERED' ? 'border-red-800 bg-red-950/40 text-red-200' : 'border-emerald-800 bg-emerald-950/40 text-emerald-200'
               }`}>
-                {urlInterpResult}
+                <p className="font-bold">Transaction Receipt #{lastCheckoutOrder.orderId}</p>
+                <p>Submitted Client Price: ₹{lastCheckoutOrder.unitPriceSubmitted}</p>
+                <p>SQLite Authoritative Price: ₹{lastCheckoutOrder.unitPriceVerified.toLocaleString()}</p>
+                <div className="border-t border-gray-800 pt-2 font-bold text-white flex justify-between">
+                  <span>Total Amount Billed:</span>
+                  <span>₹{lastCheckoutOrder.totalPaid.toLocaleString()}</span>
+                </div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* VIEW: PHISHING WEBSITE PORTAL */}
-      {activeTab === 'phishing' && (
+      {/* TAB 2: LOGIN AUTHENTICATION (SQL INJECTION & BRUTE FORCE) */}
+      {activeTab === 'login' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left: Fake Phishing Login Webpage */}
-          <div className="lg:col-span-6 rounded-2xl border border-amber-900/60 bg-gray-900/80 p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <span className="text-xs font-bold text-amber-400 font-mono flex items-center gap-1.5">
-                <Globe className="h-4 w-4" /> Spoofed Phishing Login Portal
-              </span>
-              <span className="rounded bg-red-950 px-2 py-0.5 text-[10px] text-red-400 border border-red-800 font-bold">UNTRUSTED DOMAIN</span>
-            </div>
-
-            <div className="rounded-xl bg-black p-2.5 font-mono text-[11px] text-red-300 border border-red-900/60 flex items-center justify-between gap-2">
-              <span className="shrink-0">URL:</span>
-              <input
-                type="text"
-                value={phishingDomain}
-                onChange={(e) => setPhishingDomain(e.target.value)}
-                className="flex-1 bg-transparent font-bold text-red-400 focus:outline-none border-b border-red-800"
-              />
-              <button onClick={() => copyText(phishingDomain)} className="text-gray-400 hover:text-white flex items-center gap-1 shrink-0">
-                {copiedText === phishingDomain ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              </button>
-            </div>
-
-            <form onSubmit={handlePhishingSubmit} className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Corporate Email Address:</label>
-                <input
-                  type="email"
-                  value={phishingEmail}
-                  onChange={(e) => setPhishingEmail(e.target.value)}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Vault Account Password:</label>
-                <input
-                  type="password"
-                  value={phishingPass}
-                  onChange={(e) => setPhishingPass(e.target.value)}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 py-3 text-xs font-bold text-white shadow-lg transition"
-              >
-                Submit Credentials on Phishing Page
-              </button>
-            </form>
-          </div>
-
-          {/* Right: Live Credential Harvester Dashboard */}
           <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4" /> Live Attacker Credential Harvester Log
-            </h4>
-
-            <div className="space-y-3 font-mono text-xs max-h-[380px] overflow-y-auto">
-              {harvestedCreds.map((c, idx) => (
-                <div key={idx} className="rounded-xl border border-red-900/60 bg-red-950/30 p-3.5 space-y-1">
-                  <div className="flex justify-between text-gray-400 text-[11px]">
-                    <span className="text-white font-bold">{c.email}</span>
-                    <span>{c.time}</span>
-                  </div>
-                  <p className="text-red-300">Harvested Password: <strong className="text-amber-300">{c.pass}</strong></p>
-                  <p className="text-gray-500 text-[10px]">Victim IP: {c.ip}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 1: SECRETS & API KEYS (IDOR) */}
-      {activeTab === 'secrets' && (
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
             <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                <Lock className="h-5 w-5 text-blue-400" />
+                UrbanCart Authentication Gateway
+              </h3>
+              <div className="flex gap-1">
+                <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.sqli ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
+                  SQLi: {controls.sqli ? 'PATCHED' : 'VULNERABLE'}
+                </span>
+                <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.brute_force ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
+                  BruteForce: {controls.brute_force ? 'PATCHED' : 'VULNERABLE'}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Key className="h-5 w-5 text-amber-400" />
-                  Software Firm Secrets Lookup API (`/secrets.php?secret_id=...`)
-                </h3>
-                <p className="text-xs text-gray-400">Fetch internal API keys, database credentials, and cloud AWS tokens</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                <input
-                  type="number"
-                  value={secretQueryId}
-                  onChange={(e) => setSecretQueryId(parseInt(e.target.value, 10) || 101)}
-                  placeholder="Enter Secret ID Box (e.g. 101, 102, 999)"
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 pl-10 pr-4 py-2.5 text-xs text-white font-mono"
-                />
-              </div>
-              <button
-                onClick={() => handleSecretLookup(secretQueryId)}
-                className="rounded-xl bg-amber-600 hover:bg-amber-500 px-6 py-2.5 text-xs font-bold text-white transition"
-              >
-                Fetch Secret Key
-              </button>
-            </div>
-          </div>
-
-          {secretError ? (
-            <div className="rounded-2xl border border-red-800 bg-red-950/40 p-6 text-center text-red-300 font-mono text-xs">
-              {secretError}
-            </div>
-          ) : displayedSecret ? (
-            <div className={`rounded-2xl border p-6 shadow-xl space-y-3 ${
-              displayedSecret.isConfidential ? 'border-red-700 bg-red-950/40' : 'border-gray-800 bg-gray-900/60'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white text-sm">{displayedSecret.title} (Secret ID #{displayedSecret.id})</span>
-                <span className="rounded bg-purple-950 px-2 py-0.5 text-[10px] text-purple-300 font-bold">{displayedSecret.category}</span>
-              </div>
-              <div className="border-t border-gray-800 pt-3 text-xs space-y-2">
-                <div className="rounded bg-black p-3 font-mono text-xs text-emerald-300 border border-gray-800 flex items-center justify-between">
-                  <span>Secret Value: <strong className="text-amber-300">{displayedSecret.secretKey}</strong></span>
-                  <button onClick={() => copyText(displayedSecret.secretKey)} className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1">
-                    {copiedText === displayedSecret.secretKey ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    <span>{copiedText === displayedSecret.secretKey ? 'Copied!' : 'Copy'}</span>
-                  </button>
-                </div>
-                <div className="flex justify-between text-gray-400 text-[11px]">
-                  <span>Environment: {displayedSecret.environment}</span>
-                  <span>Required Access Role: {displayedSecret.accessRole}</span>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      {/* VIEW 2: AUTH PORTAL */}
-      {activeTab === 'auth' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Lock className="h-5 w-5 text-blue-400" />
-              Software Engineer Vault Authentication
-            </h3>
-
-            <form onSubmit={handleAuth} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Username / Payload Input Box:</label>
+                <label className="block font-medium text-gray-300 mb-1">Username Input Box (SQLi / Username Target):</label>
                 <input
                   type="text"
-                  value={loginUser}
-                  onChange={(e) => setLoginUser(e.target.value)}
-                  placeholder="e.g. admin123 or ' OR '1'='1"
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  placeholder="e.g. admin or ' OR '1'='1"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-white font-mono focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Password Input Box:</label>
+                <label className="block font-medium text-gray-300 mb-1">Password Input Box:</label>
                 <input
                   type="password"
-                  value={loginPass}
-                  onChange={(e) => setLoginPass(e.target.value)}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="Password"
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-white font-mono focus:outline-none"
                 />
               </div>
 
-              {loginError && (
-                <div className="rounded-xl bg-red-950/60 p-3 text-xs text-red-300 border border-red-800">
-                  {loginError}
+              {authStatusMessage && (
+                <div className={`rounded-xl p-3.5 text-xs font-mono border ${
+                  authStatusMessage.type === 'success' ? 'bg-emerald-950/60 border-emerald-800 text-emerald-200' :
+                  authStatusMessage.type === 'lockout' ? 'bg-amber-950/60 border-amber-800 text-amber-200' :
+                  'bg-red-950/60 border-red-800 text-red-200'
+                }`}>
+                  {authStatusMessage.msg}
                 </div>
               )}
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 py-3 text-xs font-bold text-white shadow-lg transition"
+                disabled={controls.brute_force && accountLockRemaining > 0}
+                className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 py-3 text-xs font-bold text-white shadow-lg transition disabled:opacity-50"
               >
-                Authenticate Vault Access
+                {accountLockRemaining > 0 ? `Locked Out (${accountLockRemaining}s)` : 'Authenticate User'}
               </button>
             </form>
           </div>
 
-          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl flex flex-col justify-between">
-            <div>
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 font-mono">Current Session State</h4>
-              {sessionUser ? (
-                <div className="rounded-xl bg-emerald-950/40 p-4 border border-emerald-800 text-emerald-200 space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-white text-sm">
-                    <UserCheck className="h-5 w-5 text-emerald-400" />
-                    <span>{sessionUser.name}</span>
-                  </div>
-                  <p className="text-xs">Role: <span className="font-bold text-amber-300 font-mono">{sessionUser.role}</span></p>
-                  <p className="text-xs text-gray-300">Employee ID: #{sessionUser.empId}</p>
-                </div>
-              ) : (
-                <div className="flex h-32 flex-col items-center justify-center text-gray-500 text-xs">
-                  <Lock className="h-6 w-6 mb-2 opacity-30" />
-                  <p>Unauthenticated Guest Session.</p>
-                </div>
-              )}
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">Authentication Security Control Policies</h4>
+            <div className="space-y-3 font-mono text-xs">
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-1">
+                <span className="text-blue-400 font-bold block">1. SQL Injection Query Strategy:</span>
+                <p className="text-gray-300">
+                  {controls.sqli ? (
+                    <span className="text-emerald-400">🟢 PATCHED: SELECT * FROM users WHERE username = ? AND password = ? (Bound out-of-band parameters)</span>
+                  ) : (
+                    <span className="text-red-400">🔴 VULNERABLE: SELECT * FROM users WHERE username = '{loginUsername}' AND password = '{loginPassword}'</span>
+                  )}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-1">
+                <span className="text-amber-400 font-bold block">2. Brute Force Protection Policy:</span>
+                <p className="text-gray-300">
+                  {controls.brute_force ? (
+                    <span className="text-emerald-400">🟢 PATCHED: Max 3 Failed Attempt Threshold → 30s Cooldown Account Lockout Active (Current Failed Tries: {failedAttemptsCount}/3)</span>
+                  ) : (
+                    <span className="text-red-400">🔴 VULNERABLE: Unlimited authentication attempts permitted without lockout or rate limiting.</span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* VIEW 3: DEVELOPER BOARD (XSS) */}
-      {activeTab === 'notices' && (
+      {/* TAB 3: INBOX & IDN HOMOGRAPH PHISHING */}
+      {activeTab === 'inbox' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-6 rounded-2xl border border-amber-900/60 bg-gray-900/80 p-6 shadow-xl space-y-4">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                <Mail className="h-5 w-5 text-amber-400" />
+                UrbanCart User Inbox (Simulated Phishing Mail)
+              </h3>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.idn_homograph ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
+                IDN Detection: {controls.idn_homograph ? 'PATCHED' : 'VULNERABLE'}
+              </span>
+            </div>
+
+            <div className="rounded-xl border border-amber-800/80 bg-black p-4 space-y-3 font-sans">
+              <div className="flex justify-between text-xs text-gray-400 border-b border-gray-800 pb-2">
+                <div>
+                  <p className="font-bold text-white">From: Security Team &lt;security@urbancаrt.com&gt;</p>
+                  <p>Subject: URGENT: Verify your UrbanCart Account Credentials</p>
+                </div>
+                <span className="text-[10px]">Today, 10:14 AM</span>
+              </div>
+
+              <div className="text-xs text-gray-300 space-y-2">
+                <p>Dear Customer,</p>
+                <p>We detected unusual activity on your UrbanCart account. Please verify your credentials immediately to avoid account suspension.</p>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handlePhishingLinkClick}
+                  className="rounded-xl bg-amber-600 hover:bg-amber-500 px-4 py-2 text-xs font-bold text-white transition"
+                >
+                  Verify Account Credentials →
+                </button>
+              </div>
+            </div>
+
+            {showPhishingWarning && (
+              <div className="rounded-xl border border-red-700 bg-red-950 p-4 text-xs font-mono text-red-200 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-red-300">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <span>⚠ SECURITY WARNING: SUSPICIOUS IDN HOMOGRAPH DOMAIN DETECTED!</span>
+                </div>
+                <p>The requested domain contains suspicious internationalized Cyrillic characters visually mimicking genuine UrbanCart domain.</p>
+                <div className="rounded bg-black p-2 text-[11px] text-amber-300">
+                  <p>Requested URL: <strong>{phishingDomain}</strong></p>
+                  <p>ASCII Punycode Representation: <strong>{punycodeDomain}</strong></p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">IDN Homograph Security Explanation</h4>
+            <div className="space-y-3 text-xs font-mono text-gray-300">
+              <div className="rounded-xl bg-black p-4 border border-gray-800 space-y-2">
+                <span className="font-bold text-amber-400 block">Homograph Character Analysis:</span>
+                <p>Legitimate Domain: <code className="text-emerald-400 font-bold">urbancart.com</code> (Latin 'a')</p>
+                <p>Spoofed Domain: <code className="text-red-400 font-bold">urbancаrt.com</code> (Cyrillic 'а' U+0430)</p>
+                <p className="text-[11px] text-gray-400 mt-2">
+                  In Patched Mode, script detection checks mixed character sets and displays Punycode representations (`xn--urbancrt-8ya.com`) to alert users before credential entry.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: CUSTOMER REVIEWS (STORED XSS) */}
+      {activeTab === 'reviews' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-5 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Megaphone className="h-5 w-5 text-purple-400" />
-              Post Developer Board Note
-            </h3>
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-purple-400" />
+                Submit Product Review
+              </h3>
+              <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${controls.xss ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
+                XSS: {controls.xss ? 'PATCHED' : 'VULNERABLE'}
+              </span>
+            </div>
 
-            <form onSubmit={handlePostNote} className="space-y-3">
+            <form onSubmit={handleReviewSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Topic:</label>
-                <input
-                  type="text"
-                  value={noteTopic}
-                  onChange={(e) => setNoteTopic(e.target.value)}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-300 mb-1">Content Input Box (XSS Target):</label>
+                <label className="block font-medium text-gray-300 mb-1">Review Content Input Box (XSS Target):</label>
                 <textarea
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
+                  value={newReviewText}
+                  onChange={(e) => setNewReviewText(e.target.value)}
                   rows={4}
-                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none"
+                  className="w-full rounded-xl bg-gray-950 border border-gray-800 px-3.5 py-2.5 text-white font-mono focus:outline-none"
                   required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 py-3 text-xs font-bold text-white shadow-lg transition flex items-center justify-center gap-2"
+                className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 py-3 text-xs font-bold text-white shadow-lg transition"
               >
-                <Send className="h-4 w-4" />
-                <span>Post Developer Note</span>
+                Post Customer Review
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-7 space-y-4">
-            {activeXssAlert && (
-              <div className="rounded-xl border border-red-700 bg-red-950 p-4 text-xs font-mono text-red-200 animate-pulse-glow">
-                {activeXssAlert}
+            {xssTriggerAlert && (
+              <div className="rounded-xl border border-red-700 bg-red-950 p-4 text-xs font-mono text-red-200">
+                {xssTriggerAlert}
               </div>
             )}
 
             <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-3">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">Developer Audit & Announcement Feed</h4>
-              <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
-                {notes.map((n) => (
-                  <div key={n.id} className="rounded-xl border border-gray-800 bg-gray-950 p-4 space-y-1">
-                    <div className="flex justify-between text-xs text-gray-400">
-                      <span className="font-bold text-white">{n.topic}</span>
-                      <span>By {n.author} • {n.createdAt}</span>
-                    </div>
-                    {mode === 'vulnerable' ? (
-                      <div className="text-xs text-purple-200 pt-2 font-mono break-words" dangerouslySetInnerHTML={{ __html: n.content }} />
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">UrbanCart Product Reviews Feed</h4>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {reviewsList.map((r) => (
+                  <div key={r.id} className="rounded-xl border border-gray-800 bg-black p-4 space-y-1">
+                    <span className="text-xs font-bold text-white block">{r.author}</span>
+                    {!controls.xss ? (
+                      <div className="text-xs text-purple-200 font-mono" dangerouslySetInnerHTML={{ __html: r.text }} />
                     ) : (
-                      <div className="text-xs text-emerald-200 pt-2 font-mono break-words">{n.content}</div>
+                      <div className="text-xs text-emerald-200 font-mono">{r.text}</div>
                     )}
                   </div>
                 ))}
@@ -869,115 +847,173 @@ export const FullAppModule: React.FC = () => {
         </div>
       )}
 
-      {/* VIEW 4: SOFTWARE LICENSES (Price Tampering) */}
-      {activeTab === 'licenses' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+      {/* TAB 5: SECURITY CENTER & EVENT LOG ADMIN DASHBOARD */}
+      {activeTab === 'admin' && (
+        <div className="space-y-6 font-mono">
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-emerald-400" />
-              Software License Procurement
+              <Activity className="h-5 w-5 text-emerald-400" />
+              UrbanCart Central Security Center Admin Dashboard
             </h3>
 
-            <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 space-y-2">
-              <h4 className="text-sm font-bold text-white">ApexSoft Security Audit & SAST Suite</h4>
-              <p className="text-xs text-gray-400">Original Tier Catalog Price: ₹1,20,000</p>
+            {/* Controls Matrix Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">1. SQL Injection</span>
+                  <button
+                    onClick={() => toggleControl('sqli')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.sqli ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.sqli ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">Dynamic SQL string query vs Parameterized Prepared Statements.</p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">2. Brute Force Protection</span>
+                  <button
+                    onClick={() => toggleControl('brute_force')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.brute_force ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.brute_force ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">Unlimited attempts vs 3-attempt threshold & 30s lockout.</p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">3. Parameter Tampering</span>
+                  <button
+                    onClick={() => toggleControl('parameter_tampering')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.parameter_tampering ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.parameter_tampering ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">Trust client price vs Server-side SQLite lab.db validation.</p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">4. IDN Homograph Phishing</span>
+                  <button
+                    onClick={() => toggleControl('idn_homograph')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.idn_homograph ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.idn_homograph ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">No warning vs Mixed-script Cyrillic domain detection & Punycode warning.</p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">5. Stored XSS</span>
+                  <button
+                    onClick={() => toggleControl('xss')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.xss ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.xss ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">Unescaped HTML echo vs htmlspecialchars() entity encoding.</p>
+              </div>
+
+              <div className="rounded-xl border border-gray-800 bg-black p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-white text-xs">6. LFI & RCE Filtering</span>
+                  <button
+                    onClick={() => toggleControl('lfi')}
+                    className={`px-3 py-1 rounded text-[10px] font-bold transition ${controls.lfi ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}
+                  >
+                    {controls.lfi ? 'PATCHED 🟢' : 'VULNERABLE 🔴'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400">Unsafe include/exec vs basename() & FILTER_VALIDATE_IP.</p>
+              </div>
             </div>
-
-            <form onSubmit={handleLicenseCheckout} className="space-y-4">
-              {mode === 'vulnerable' ? (
-                <div className="rounded-xl bg-black p-3.5 border border-red-900/60 font-mono text-xs space-y-2">
-                  <span className="text-red-400 font-bold block">Tampered License Price Parameter Input Box: ₹</span>
-                  <input
-                    type="number"
-                    value={selectedLicensePrice}
-                    onChange={(e) => setSelectedLicensePrice(parseFloat(e.target.value) || 0)}
-                    className="w-36 rounded bg-gray-900 px-2 py-1 text-red-300 font-bold border border-red-700"
-                  />
-                </div>
-              ) : (
-                <div className="rounded-xl bg-emerald-950/30 p-3.5 border border-emerald-900/60 text-xs text-emerald-200">
-                  🟢 Secure Mode Active: License price verified on backend database (₹1,20,000).
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-xs font-bold text-white shadow-lg transition"
-              >
-                Procure License Seat
-              </button>
-            </form>
           </div>
 
-          <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 font-mono">License Receipt</h4>
-            {lastLicenseOrder ? (
-              <div className={`rounded-xl border p-4 font-mono text-xs space-y-2 ${
-                lastLicenseOrder.status === 'PRICE_TAMPERED'
-                  ? 'border-red-800 bg-red-950/40 text-red-200'
-                  : 'border-emerald-800 bg-emerald-950/40 text-emerald-200'
-              }`}>
-                <p className="font-bold text-white">Order ID: {lastLicenseOrder.orderId}</p>
-                <p>Software: {lastLicenseOrder.productName}</p>
-                <p>Submitted Price: ₹{lastLicenseOrder.unitPriceSubmitted}</p>
-                <p>Authoritative Price: ₹{lastLicenseOrder.unitPriceVerified.toLocaleString()}</p>
-                <div className="border-t border-gray-800 pt-2 font-bold flex justify-between">
-                  <span>Total Amount Billed:</span>
-                  <span>₹{lastLicenseOrder.totalPaid.toLocaleString()}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-32 flex-col items-center justify-center text-gray-500 text-xs">
-                <ShoppingCart className="h-6 w-6 mb-2 opacity-30" />
-                <p>No license procurement transactions submitted yet.</p>
-              </div>
-            )}
+          {/* Real-time Security Events Log Table */}
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
+            <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Real-Time Security Event Monitor Table (`events` table)</h4>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border border-gray-800">
+                <thead className="bg-black text-gray-400 font-bold border-b border-gray-800">
+                  <tr>
+                    <th className="py-2.5 px-3">Event ID</th>
+                    <th className="py-2.5 px-3">Timestamp</th>
+                    <th className="py-2.5 px-3">Event Type</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800 text-[11px]">
+                  {events.map((e) => (
+                    <tr key={e.id} className="hover:bg-gray-900">
+                      <td className="py-2 px-3 font-bold text-gray-400">{e.id}</td>
+                      <td className="py-2 px-3 text-gray-400">{e.timestamp}</td>
+                      <td className="py-2 px-3 font-bold text-indigo-300">{e.eventType}</td>
+                      <td className="py-2 px-3">
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          e.status === 'PATCHED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'
+                        }`}>
+                          {e.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-gray-200">{e.details}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* VIEW 5: LFI & COMMAND INJECTION */}
+      {/* TAB 6: DIAGNOSTICS & LFI VIEWER */}
       {activeTab === 'diagnostics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* LFI File Read */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-mono text-xs">
           <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Server className="h-5 w-5 text-red-400" />
-              Firm Vault File Reader API (?file=... LFI Target)
+              Log File Reader API (?file=... LFI Target)
             </h3>
-            <form onSubmit={handleLfiRead} className="flex gap-2">
+            <form onSubmit={handleLfiExecute} className="flex gap-2">
               <input
                 type="text"
-                value={lfiPath}
-                onChange={(e) => setLfiPath(e.target.value)}
-                placeholder="e.g. ../../../../etc/passwd"
-                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
+                value={lfiFile}
+                onChange={(e) => setLfiFile(e.target.value)}
+                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-white font-mono"
               />
               <button type="submit" className="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white">
-                Read File
+                Read Log File
               </button>
             </form>
 
             {lfiOutput && (
-              <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300 border border-gray-800 overflow-x-auto">
+              <div className="rounded-xl bg-black p-3 text-emerald-300 border border-gray-800 overflow-x-auto">
                 <pre>{lfiOutput}</pre>
               </div>
             )}
           </div>
 
-          {/* OS Command Injection */}
           <div className="lg:col-span-6 rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Terminal className="h-5 w-5 text-red-400" />
-              Server Ping Diagnostic Tool (RCE Target)
+              Server Host Ping Diagnostic Tool (RCE Target)
             </h3>
-            <form onSubmit={handlePingExec} className="flex gap-2">
+            <form onSubmit={handlePingExecute} className="flex gap-2">
               <input
                 type="text"
-                value={pingHost}
-                onChange={(e) => setPingHost(e.target.value)}
-                placeholder="e.g. 8.8.8.8; cat /etc/passwd"
-                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
+                value={pingTarget}
+                onChange={(e) => setPingTarget(e.target.value)}
+                className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-white font-mono"
               />
               <button type="submit" className="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white">
                 Run Ping
@@ -985,7 +1021,7 @@ export const FullAppModule: React.FC = () => {
             </form>
 
             {pingOutput && (
-              <div className="rounded-xl bg-black p-3 text-xs font-mono text-emerald-300 border border-gray-800 overflow-x-auto">
+              <div className="rounded-xl bg-black p-3 text-emerald-300 border border-gray-800 overflow-x-auto">
                 <pre>{pingOutput}</pre>
               </div>
             )}
@@ -993,21 +1029,21 @@ export const FullAppModule: React.FC = () => {
         </div>
       )}
 
-      {/* STANDALONE TARGET WINDOW MODAL */}
+      {/* STANDALONE WINDOW SANDBOX MODAL */}
       {isStandaloneOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-lg">
-          <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-red-500 bg-gray-950 shadow-2xl overflow-hidden font-sans">
-            <div className="flex items-center justify-between bg-gradient-to-r from-red-600 to-purple-700 px-6 py-3 text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-lg font-sans">
+          <div className="flex h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-indigo-500 bg-gray-950 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-white">
               <div className="flex items-center gap-3">
-                <FolderLock className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5" />
                 <div>
                   <h2 className="text-base font-bold flex items-center gap-2">
-                    ApexSoft Developer Credential Vault
+                    URBANCART E-Commerce Security Demonstration Application
                     <span className="rounded bg-black/40 px-2 py-0.5 text-xs text-white border border-white/20">
-                      Standalone Target Sandbox
+                      Standalone Window Sandbox
                     </span>
                   </h2>
-                  <p className="text-xs text-white/80">Real-time Firm Vault Target Application</p>
+                  <p className="text-xs text-white/80">Real-time Lab Environment (lab.db SQLite Backend)</p>
                 </div>
               </div>
 
@@ -1020,31 +1056,23 @@ export const FullAppModule: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 bg-gray-900 px-4 py-2 border-b border-gray-800 text-xs font-mono text-gray-300">
-              <span className="text-gray-500">https://vault.apexsoft-firm.org/app</span>
+              <span className="text-gray-500">http://localhost:5173/urbancart</span>
               <span className="ml-auto rounded bg-emerald-950 px-2 py-0.5 text-[10px] text-emerald-400 font-bold border border-emerald-800">
-                ACTIVE LAB TARGET
+                ACTIVE LAB SANDBOX
               </span>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 bg-[#0b0f19] space-y-6">
-              <h3 className="text-sm font-bold text-white">Software Firm Secrets Vault Sandbox View</h3>
-              <form onSubmit={(e) => { e.preventDefault(); handleSecretLookup(secretQueryId); }} className="flex gap-2">
-                <input
-                  type="number"
-                  value={secretQueryId}
-                  onChange={(e) => setSecretQueryId(parseInt(e.target.value, 10) || 101)}
-                  className="flex-1 rounded-xl bg-gray-950 border border-gray-800 px-3 py-2 text-xs text-white font-mono"
-                />
-                <button type="submit" className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white">
-                  Fetch Secret
-                </button>
-              </form>
-              {displayedSecret && (
-                <div className="rounded-xl bg-black p-4 text-xs font-mono text-amber-300 border border-gray-800">
-                  <p>Secret ID #{displayedSecret.id}: {displayedSecret.title}</p>
-                  <p>Value: {displayedSecret.secretKey}</p>
-                </div>
-              )}
+              <h3 className="text-sm font-bold text-white">UrbanCart Real-Time Target Application View</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {URBANCART_PRODUCTS.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-gray-800 bg-gray-900 p-4 space-y-2">
+                    <h4 className="font-bold text-white text-xs">{p.name}</h4>
+                    <p className="text-[11px] text-gray-400">{p.description}</p>
+                    <p className="text-xs font-mono text-emerald-400 font-bold">Price: ₹{p.price.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

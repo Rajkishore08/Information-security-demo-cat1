@@ -1,4 +1,88 @@
-import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, FirmSecret, FirmNote, SoftwareLicense } from '../types/security';
+import type { BankCustomer, FeedbackItem, Product, CodeComparison, VivaQA, FirmSecret, FirmNote, SoftwareLicense, SecurityEvent } from '../types/security';
+
+export const URBANCART_PRODUCTS: Product[] = [
+  {
+    id: 1,
+    name: 'Smartphone Pro Max (128GB)',
+    category: 'Electronics',
+    price: 3499,
+    originalPrice: 3499,
+    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=80',
+    description: 'Flagship OLED display smartphone with triple lens camera array.',
+    isRestricted: false
+  },
+  {
+    id: 2,
+    name: 'Wireless Noise Canceling Headphones',
+    category: 'Audio',
+    price: 12499,
+    originalPrice: 12499,
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80',
+    description: 'Active noise cancellation over-ear headphones with 40-hour battery life.',
+    isRestricted: false
+  },
+  {
+    id: 3,
+    name: 'Tactical Hardware Key Fob (YubiKey)',
+    category: 'Security Hardware',
+    price: 3500,
+    originalPrice: 3500,
+    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80',
+    description: 'FIDO2 / U2F Multi-Factor Authentication Hardware USB Token.',
+    isRestricted: false
+  },
+  {
+    id: 4,
+    name: 'Alienware Core-i9 Cyber Laptop',
+    category: 'Computers',
+    price: 85000,
+    originalPrice: 85000,
+    image: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=400&q=80',
+    description: 'High performance laptop with RTX 4080 GPU for security testing.',
+    isRestricted: false
+  },
+  {
+    id: 10,
+    name: 'RESTRICTED: VIP Admin Gift Voucher (₹50,000)',
+    category: 'Internal Vouchers',
+    price: 0,
+    originalPrice: 50000,
+    image: 'https://images.unsplash.com/photo-1556742049-0a6754095b54?auto=format&fit=crop&w=400&q=80',
+    description: 'Internal testing voucher intended exclusively for administrative staff testing checkout APIs.',
+    isRestricted: true
+  }
+];
+
+export const INITIAL_SECURITY_EVENTS: SecurityEvent[] = [
+  {
+    id: 'evt-101',
+    timestamp: '2026-08-12 09:30:12',
+    eventType: 'SQL Injection Bypass',
+    status: 'VULNERABLE',
+    details: "Suspicious authentication input detected: username=\"' OR '1'='1\""
+  },
+  {
+    id: 'evt-102',
+    timestamp: '2026-08-12 09:32:45',
+    eventType: 'Brute Force Lockout',
+    status: 'PATCHED',
+    details: 'Account admin locked out for 30 seconds after 3 consecutive failed login attempts.'
+  },
+  {
+    id: 'evt-103',
+    timestamp: '2026-08-12 09:35:00',
+    eventType: 'Parameter Tampering Attempt',
+    status: 'PATCHED',
+    details: 'Client submitted price ₹1 overridden with database authoritative price ₹3,499.'
+  },
+  {
+    id: 'evt-104',
+    timestamp: '2026-08-12 09:38:20',
+    eventType: 'IDN Phishing Warning',
+    status: 'PATCHED',
+    details: 'Suspicious mixed-script Cyrillic domain detected: urbancаrt.com (Punycode: xn--urbancrt-8ya.com)'
+  }
+];
 
 export const INITIAL_FIRM_SECRETS: FirmSecret[] = [
   {
